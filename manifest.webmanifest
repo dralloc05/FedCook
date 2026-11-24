@@ -1,17 +1,30 @@
 {
   "name": "FedCook",
   "short_name": "FedCook",
-  "description": "Planning de repas perso : stock, budget et courses au Leclerc de Carpentras.",
+  "description": "FedCook : planning de repas perso, stock, budget et courses au Leclerc de Carpentras.",
   "lang": "fr",
   "start_url": "./#/accueil",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f6f3",
-  "theme_color": "#2f6b3a",
+  "background_color": "#F6F6F3",
+  "theme_color": "#F6F6F3",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

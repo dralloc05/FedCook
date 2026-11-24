@@ -3,16 +3,30 @@
 import { etat, titre } from '../etat.js';
 import { echapper } from '../texte.js';
 import { dateLisible } from '../unites.js';
+import { ICONES } from '../icones.js';
+
+function rangee(lien, icone, texte, detail) {
+  return `<a class="rangee" href="${lien}">
+    <span class="tuile neutre" style="width:44px;height:44px">${icone}</span>
+    <span class="infos"><span class="titre" style="font-size:16px">${texte}</span>${detail ? `<span class="surtitre">${detail}</span>` : ''}</span>
+    <span class="chevron">${ICONES.chevron}</span>
+  </a>`;
+}
 
 export async function afficher(conteneur) {
   titre('Plus');
   const maj = etat.prixData?.maj;
   conteneur.innerHTML = `
-    <a class="carte cliquable ligne" href="#/recettes" style="color:inherit;text-decoration:none"><span class="grandit gras">Toutes les recettes</span><span>›</span></a>
-    <a class="carte cliquable ligne" href="#/historique" style="color:inherit;text-decoration:none"><span class="grandit gras">Historique (dépenses et plats)</span><span>›</span></a>
-    <a class="carte cliquable ligne" href="#/installation" style="color:inherit;text-decoration:none"><span class="grandit gras">Mon profil (goûts, restrictions, matériel)</span><span>›</span></a>
-    <a class="carte cliquable ligne" href="#/reglages" style="color:inherit;text-decoration:none"><span class="grandit gras">Réglages et sauvegarde</span><span>›</span></a>
-    <p class="doux petit centre">${etat.recettes.length} recettes ·
-      ${maj ? `prix Leclerc du ${dateLisible(maj.slice(0, 10), false)}${etat.prixData.magasin?.nom ? ` (${echapper(etat.prixData.magasin.nom)})` : ''}` : 'prix du Drive pas encore récupérés'}</p>
+    <div class="carte serree">
+      ${rangee('#/recettes', ICONES.livre, 'Toutes les recettes', `${etat.recettes.length} recettes · favoris`)}
+      ${rangee('#/historique', ICONES.graphique, 'Historique', 'Dépenses et plats cuisinés')}
+    </div>
+    <div class="carte serree">
+      ${rangee('#/installation', ICONES.profil, 'Mon profil', 'Goûts, restrictions, matériel')}
+      ${rangee('#/reglages', ICONES.reglages, 'Réglages', 'Clé Gemini, sauvegarde')}
+    </div>
+    <p class="doux petit centre" style="margin-top:20px">${maj
+      ? `Prix Leclerc du ${dateLisible(maj.slice(0, 10), false)}${etat.prixData.magasin?.nom ? ` · ${echapper(etat.prixData.magasin.nom)}` : ''}`
+      : 'Prix du Drive pas encore récupérés'}</p>
   `;
 }

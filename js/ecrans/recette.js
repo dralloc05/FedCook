@@ -6,6 +6,7 @@ import { echapper, majuscule } from '../texte.js';
 import { afficherQuantite } from '../unites.js';
 import { disponible } from '../stock.js';
 import { boutonFavori, brancherFavoris } from './recettes.js';
+import { ICONES, iconePlat } from '../icones.js';
 
 export function ligneIngredient(ing, avecStock = true) {
   let qte = '';
@@ -14,10 +15,10 @@ export function ligneIngredient(ing, avecStock = true) {
   let etatStock = '';
   if (avecStock && ing.qte > 0 && !base) {
     const dispo = disponible(etat.stock, ing.nom, ing.unite, ing.g);
-    etatStock = dispo >= ing.qte * 0.98 ? ' <span class="pastille">en stock</span>' : dispo > 0 ? ' <span class="pastille orange">en partie</span>' : '';
+    etatStock = dispo >= ing.qte * 0.98 ? ' <span class="pastille verte">en stock</span>' : dispo > 0 ? ' <span class="pastille orange">en partie</span>' : '';
   }
   const texte = ing.qte > 0 ? `${qte}${ing.nom}` : `${majuscule(ing.nom)} (selon le goût)`;
-  return `<li>${echapper(majuscule(texte))}${etatStock}</li>`;
+  return `<li class="ligne espace"><span>${echapper(majuscule(texte))}</span>${etatStock}</li>`;
 }
 
 export async function afficher(conteneur, params) {
@@ -27,31 +28,34 @@ export async function afficher(conteneur, params) {
     return;
   }
   let personnes = Math.max(1, Number(params[1]) || etat.profil.personnes || 2);
-  titre('Recette');
+  titre(r.titre, { sousTitre: `${r.temps || '?'} min${(r.regimes || []).includes('vegetarien') ? ' · végétarien' : ''}` });
 
   const dessiner = () => {
     conteneur.innerHTML = `
-      <div class="ligne haut">
-        <h2 class="grandit" style="margin-top:4px">${echapper(r.titre)}</h2>
+      <div class="carte ligne" style="gap:14px">
+        <div class="tuile" style="width:64px;height:64px">${iconePlat(r.id)}</div>
+        <div class="grandit">
+          <span class="surtitre">${(r.etapes || []).length} étapes${(r.materiel || []).length ? ` · ${r.materiel.map((m) => m.replace('_', '-')).join(', ')}` : ''}</span>
+          <div class="puces" style="margin-top:8px">${(r.regimes || []).map((x) => `<span class="pastille verte">${x.replace('_', ' ')}</span>`).join('')}</div>
+        </div>
         ${boutonFavori(r.id)}
       </div>
-      <p class="doux">${r.temps || '?'} min${(r.materiel || []).length ? ` · ${r.materiel.map((m) => m.replace('_', '-')).join(', ')}` : ''}</p>
       <div class="carte">
         <div class="ligne espace">
           <h3 style="margin:0">Ingrédients</h3>
-          <div class="ligne">
-            <button class="petit secondaire" id="moins" aria-label="Moins de personnes">−</button>
-            <span class="gras">${personnes} pers.</span>
-            <button class="petit secondaire" id="plus" aria-label="Plus de personnes">+</button>
+          <div class="compteur">
+            <button class="icone-bouton petit" id="moins" aria-label="Moins de personnes">−</button>
+            <b>${personnes} pers.</b>
+            <button class="icone-bouton petit" id="plus" aria-label="Plus de personnes">+</button>
           </div>
         </div>
-        <ul class="liste">${besoins(r, personnes).map((ing) => ligneIngredient(ing)).join('')}</ul>
+        <ul class="liste" style="margin-top:6px">${besoins(r, personnes).map((ing) => ligneIngredient(ing)).join('')}</ul>
       </div>
       <div class="carte">
         <h3>Étapes</h3>
-        <ol>${(r.etapes || []).map((e) => `<li style="margin:6px 0">${echapper(e.texte)}${e.min ? ` <span class="doux petit">(${e.min} min)</span>` : ''}</li>`).join('')}</ol>
+        <ol class="etapes">${(r.etapes || []).map((e) => `<li>${echapper(e.texte)}${e.min ? ` <span class="doux petit">(${e.min} min)</span>` : ''}</li>`).join('')}</ol>
       </div>
-      <button class="large" id="cuisiner">Cuisiner en mode pas à pas</button>
+      <button class="large" id="cuisiner">${ICONES.lecture} Cuisiner pas à pas</button>
     `;
     brancherFavoris(conteneur);
     conteneur.querySelector('#moins').addEventListener('click', () => { personnes = Math.max(1, personnes - 1); dessiner(); });

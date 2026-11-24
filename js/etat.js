@@ -40,13 +40,19 @@ export function toast(message, duree = 2600) {
   if (!el) return;
   el.textContent = message;
   el.hidden = false;
+  el.onclick = () => { el.hidden = true; };
   clearTimeout(toast.minuteur);
   toast.minuteur = setTimeout(() => { el.hidden = true; }, duree);
 }
 
-export function titre(texte) {
+// Titre de l'écran, avec une petite ligne au-dessus et des boutons à droite si besoin.
+export function titre(texte, options = {}) {
   document.getElementById('titre-page').textContent = texte;
   document.title = `${texte} · FedCook`;
+  const sous = document.getElementById('sous-titre');
+  sous.textContent = options.sousTitre || '';
+  sous.hidden = !options.sousTitre;
+  document.getElementById('actions-haut').innerHTML = options.actions || '';
 }
 
 // Liste des ingrédients connus pour l'autocomplétion des champs "ingrédient".

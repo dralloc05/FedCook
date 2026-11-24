@@ -4,6 +4,7 @@ import { etat, sauver, titre, toast, contextePrix } from '../etat.js';
 import { genererPlanning, calculerCourses, recettesCompatibles } from '../planning.js';
 import { echapper, euros } from '../texte.js';
 import { aujourdhui, dateLisible } from '../unites.js';
+import { iconePlat, tuileNeutre } from '../icones.js';
 
 function parametres(extra = {}) {
   return {
@@ -23,8 +24,12 @@ export function totalCourses() {
   return calculerCourses(parametres(), etat.planning.repas);
 }
 
+function majusculeInitiale(texte) {
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
 export async function afficher(conteneur, params) {
-  titre('Planning');
+  titre('Ta semaine');
   if (!etat.planning || params[0] === 'nouveau') return afficherFormulaire(conteneur);
   afficherPlanning(conteneur);
 }
@@ -32,10 +37,10 @@ export async function afficher(conteneur, params) {
 function afficherFormulaire(conteneur) {
   const p = etat.profil;
   const nbCompat = recettesCompatibles(etat.recettes, p).length;
+  titre('Nouveau planning', { sousTitre: 'Midi et soir, jusqu\'à 7 jours' });
   conteneur.innerHTML = `
     <form id="form-planning" class="carte">
-      <h3>Nouveau planning</h3>
-      <label for="debut">À partir du</label>
+      <label for="debut" style="margin-top:0">À partir du</label>
       <input type="date" id="debut" value="${aujourdhui()}">
       <div class="champs-ligne">
         <div>
@@ -81,6 +86,7 @@ function afficherFormulaire(conteneur) {
 
 function afficherPlanning(conteneur) {
   const pl = etat.planning;
+  titre('Ta semaine', { sousTitre: `Du ${dateLisible(pl.debut, false)} au ${dateLisible(pl.repas[pl.repas.length - 1]?.date || pl.debut, false)}` });
   const courses = calculerCourses(parametres(), pl.repas);
   const depasse = pl.budget > 0 && courses.total > pl.budget + 0.01;
 
@@ -90,38 +96,47 @@ function afficherPlanning(conteneur) {
     parJour.get(r.date).push({ ...r, index });
   });
 
+  const auj = aujourdhui();
   const jours = [...parJour.entries()].map(([date, repas]) => `
-    <div class="carte">
-      <h3>${dateLisible(date)}</h3>
+    <div class="entete-section">
+      <h2>${date === auj ? "Aujourd'hui" : majusculeInitiale(dateLisible(date))}</h2>
+      ${date === auj ? `<span class="doux petit">${dateLisible(date)}</span>` : ''}
+    </div>
+    <div class="carte serree">
       ${repas.map((r) => {
         const rec = etat.parId.get(r.recetteId);
-        return `<div class="repas ${r.fait ? 'fait' : ''}">
-          <div class="moment">${r.moment === 'midi' ? 'Midi' : 'Soir'}</div>
-          <div class="grandit">
-            <a class="titre-repas gras" href="#/recette/${encodeURIComponent(r.recetteId)}/${r.personnes}" style="color:inherit;text-decoration:none">${echapper(rec ? rec.titre : 'Recette introuvable')}</a>
-            <div class="doux petit">${rec ? `${rec.temps || '?'} min` : ''}${r.fait ? ' · cuisiné' : ''}</div>
-            ${r.fait ? '' : `<div class="actions">
-              <a class="bouton petit" href="#/cuisine/${encodeURIComponent(r.recetteId)}/${r.personnes}/${r.index}">Cuisiner</a>
-              <button class="petit secondaire" data-changer="${r.index}">Changer</button>
-              <a href="#/recettes/choisir/${r.index}">Choisir moi-même</a>
-            </div>`}
-          </div>
+        const info = `${r.moment === 'midi' ? 'Midi' : 'Soir'}${rec ? ` · ${rec.temps || '?'} min` : ''}${r.fait ? ' · cuisiné' : ''}`;
+        return `<div class="rangee ${r.fait ? 'fait' : ''}" style="flex-wrap:wrap">
+          <div class="tuile ${rec && tuileNeutre(rec.id) ? 'neutre' : ''}">${iconePlat(r.recetteId)}</div>
+          <a class="infos" href="#/recette/${encodeURIComponent(r.recetteId)}/${r.personnes}" style="color:inherit;font-weight:inherit">
+            <span class="surtitre">${info}</span>
+            <span class="titre">${echapper(rec ? rec.titre : 'Recette introuvable')}</span>
+          </a>
+          ${r.fait ? '' : `<div class="actions-rangee" style="width:100%;padding-left:66px">
+            <a class="bouton petit" href="#/cuisine/${encodeURIComponent(r.recetteId)}/${r.personnes}/${r.index}">Cuisiner</a>
+            <button class="petit secondaire" data-changer="${r.index}">Changer</button>
+            <a class="petit" href="#/recettes/choisir/${r.index}">Choisir</a>
+          </div>`}
         </div>`;
       }).join('')}
     </div>`).join('');
 
+  const part = pl.budget > 0 ? Math.min(100, Math.round((courses.total / pl.budget) * 100)) : 0;
   conteneur.innerHTML = `
-    <div class="total ${depasse ? 'depasse' : ''}">
-      <span>Courses</span>
-      <span>${euros(courses.total)}${pl.budget > 0 ? ` / ${euros(pl.budget)}` : ''}</span>
+    <div class="carte">
+      <div class="ligne espace">
+        <span class="surtitre">Courses · ${pl.personnes} pers. · ${pl.jours} jour${pl.jours > 1 ? 's' : ''}</span>
+        <a class="petit" href="#/planning/nouveau">Nouveau planning</a>
+      </div>
+      <div class="total-ligne" style="margin-top:8px">
+        <span class="gros-chiffre" style="${depasse ? 'color:var(--rouge)' : ''}">${euros(courses.total)}</span>
+        ${pl.budget > 0 ? `<span class="doux" style="font-size:16px;font-weight:600">sur ${euros(pl.budget)}</span>` : ''}
+      </div>
+      ${pl.budget > 0 ? `<div class="jauge ${depasse ? 'depasse' : ''}"><div style="width:${part}%"></div></div>` : '<div style="height:12px"></div>'}
+      <a class="bouton large" href="#/courses">Voir la liste de courses</a>
     </div>
     ${courses.inconnus ? `<div class="alerte">${courses.inconnus} produit(s) sans prix connu : le total est sous-estimé.</div>` : ''}
     <div id="budget-min"></div>
-    <div class="boutons">
-      <a class="bouton" href="#/courses">Liste de courses</a>
-      <a class="bouton secondaire" href="#/planning/nouveau">Nouveau planning</a>
-    </div>
-    <p class="doux petit">${pl.personnes} personne(s) · ${pl.jours} jour(s). « Changer » propose un autre plat, « Choisir moi-même » ouvre toutes les recettes.</p>
     ${jours}
   `;
 

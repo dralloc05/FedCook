@@ -79,16 +79,15 @@ export async function afficher(conteneur, params) {
     if (position === 0) {
       conteneur.innerHTML = `
         ${barre}
-        <h2>${echapper(r.titre)}</h2>
-        <p class="doux">${personnes} personne(s) · ${r.temps || '?'} min</p>
-        <div class="carte"><h3>Prépare</h3><ul class="liste">${ingredients.map((i) => ligneIngredient(i)).join('')}</ul></div>
+        <p class="doux" style="margin:10px 0 0">${personnes} personne${personnes > 1 ? 's' : ''} · ${r.temps || '?'} min · ${etapes.length} étapes</p>
+        <div class="carte"><h3>Sors les ingrédients</h3><ul class="liste">${ingredients.map((i) => ligneIngredient(i)).join('')}</ul></div>
         <div class="boutons"><button class="secondaire" id="sortir">Quitter</button><button id="suivant">Commencer</button></div>`;
     } else {
       const e = etapes[position - 1];
       const derniere = position === etapes.length;
       conteneur.innerHTML = `
         ${barre}
-        <p class="doux">Étape ${position} sur ${etapes.length}</p>
+        <p class="surtitre" style="margin:10px 0 0">Étape ${position} sur ${etapes.length}</p>
         <div class="etape-cuisine">${echapper(e.texte)}</div>
         ${e.min ? `<div class="carte centre"><div class="minuteur" id="temps">${format(e.min * 60)}</div><button class="secondaire" id="lancer">Lancer le minuteur (${e.min} min)</button></div>` : ''}
         <div class="boutons">

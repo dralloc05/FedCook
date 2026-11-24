@@ -49,30 +49,34 @@ function dessiner(conteneur) {
       ? `${l.paquets} × ${euros(prixEffectif(l.produit))}${l.produit.prixPromo ? ' <span class="pastille orange">promo</span>' : ''}`
       : l.source === 'ticket' ? 'estimation' : '';
     return `<div class="coche ${fait ? 'faite' : ''}">
-      <input type="checkbox" data-cocher="${echapper(cle)}" ${fait ? 'checked' : ''} aria-label="Pris">
+      <input type="checkbox" data-cocher="${echapper(cle)}" ${fait ? 'checked' : ''} aria-label="Pris : ${echapper(l.nom)}">
       <div class="grandit">
-        <div class="gras">${echapper(majuscule(l.nom))} <span class="doux petit">— ${quantite(l.manque, l.unite)}</span></div>
-        <div class="doux petit">${produit}${detailPrix ? ` · ${detailPrix}` : ''}</div>
-        ${produitsPour(ctx, l.nom).length > 1 ? `<button class="petit secondaire" data-produits="${echapper(l.nom)}" style="margin-top:4px">Autre produit</button>` : ''}
+        <div class="nom-course">${echapper(majuscule(l.nom))} <span class="doux" style="font-weight:600">· ${quantite(l.manque, l.unite)}</span></div>
+        <div class="doux petit" style="margin-top:2px">${produit}${detailPrix ? ` · ${detailPrix}` : ''}</div>
+        ${produitsPour(ctx, l.nom).length > 1 ? `<button class="lien-bouton" data-produits="${echapper(l.nom)}" style="margin-top:6px">Autre produit</button>` : ''}
         <div data-choix-zone="${echapper(cle)}"></div>
       </div>
-      <div class="gras">${l.source === 'inconnu' ? '?' : euros(l.cout)}</div>
+      <div class="prix-ligne">${l.source === 'inconnu' ? '?' : euros(l.cout)}</div>
     </div>`;
   };
 
   conteneur.innerHTML = `
-    <div class="total ${depasse ? 'depasse' : ''}">
-      <span>Total estimé</span>
-      <span>${euros(res.total)}${budget > 0 ? ` / ${euros(budget)}` : ''}</span>
+    <div class="carte">
+      <span class="surtitre">Total estimé${etat.prixData?.magasin?.nom ? ` · Leclerc ${echapper(etat.prixData.magasin.nom)}` : ''}</span>
+      <div class="total-ligne" style="margin-top:8px">
+        <span class="gros-chiffre" style="${depasse ? 'color:var(--rouge)' : ''}">${euros(res.total)}</span>
+        ${budget > 0 ? `<span class="doux" style="font-size:16px;font-weight:600">sur ${euros(budget)}</span>` : ''}
+      </div>
+      ${budget > 0 ? `<div class="jauge ${depasse ? 'depasse' : ''}" style="margin-bottom:4px"><div style="width:${Math.min(100, Math.round((res.total / budget) * 100))}%"></div></div>` : ''}
     </div>
     ${res.inconnus ? `<div class="alerte">${res.inconnus} produit(s) sans prix : le total est sous-estimé.</div>` : ''}
     ${!etat.prixData?.maj ? '<div class="alerte">Les prix du Drive ne sont pas encore récupérés. Les prix viennent de tes tickets quand ils sont connus.</div>' : ''}
     ${res.lignes.length === 0 ? '<p class="vide">Tout est déjà dans ton stock.</p>' : ''}
-    ${rayons.map((r) => `<h2>${echapper(r)}</h2><div class="carte">${res.lignes.filter((l) => l.rayon === r).map(ligneHTML).join('')}</div>`).join('')}
-    ${res.dejaEnStock.length ? `<details class="carte"><summary>Déjà dans ton stock (${res.dejaEnStock.length})</summary>
+    ${rayons.map((r) => `<h2>${echapper(r)}</h2><div class="carte serree">${res.lignes.filter((l) => l.rayon === r).map(ligneHTML).join('')}</div>`).join('')}
+    ${res.dejaEnStock.length ? `<details class="carte" style="margin-top:20px"><summary>Déjà dans ton stock (${res.dejaEnStock.length})</summary>
       <ul class="liste">${res.dejaEnStock.map((b) => `<li>${echapper(majuscule(b.nom))} <span class="doux petit">— ${quantite(b.qte, b.unite)}</span></li>`).join('')}</ul></details>` : ''}
     ${res.lignes.length ? `
-      <div class="carte">
+      <div class="carte" style="margin-top:20px">
         <h3>Après les courses</h3>
         <p class="doux petit">Le plus précis : prends le ticket en photo, il remplit le stock avec les vrais prix. Sinon, « Courses faites » ajoute au stock ce qui est coché, avec les prix estimés.</p>
         <div class="boutons">

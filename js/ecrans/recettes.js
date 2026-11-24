@@ -4,12 +4,13 @@ import { etat, sauver, titre, toast, aller } from '../etat.js';
 import { recettesCompatibles } from '../planning.js';
 import { echapper, normaliser } from '../texte.js';
 import { remplacerRepas } from './planning.js';
+import { ICONES, iconePlat, tuileNeutre } from '../icones.js';
 
 const PAR_PAGE = 60;
 
 export function boutonFavori(id) {
   const fav = etat.favoris.includes(id);
-  return `<button class="coeur" data-favori="${echapper(id)}" aria-label="${fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${fav ? '&#9829;' : '&#9825;'}</button>`;
+  return `<button class="coeur" data-favori="${echapper(id)}" aria-label="${fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${fav ? ICONES.coeurPlein : ICONES.coeur}</button>`;
 }
 
 export function brancherFavoris(racine) {
@@ -22,7 +23,8 @@ export function brancherFavoris(racine) {
       if (ens.has(id)) ens.delete(id); else ens.add(id);
       etat.favoris = [...ens];
       await sauver('favoris');
-      b.innerHTML = ens.has(id) ? '&#9829;' : '&#9825;';
+      b.innerHTML = ens.has(id) ? ICONES.coeurPlein : ICONES.coeur;
+      b.setAttribute('aria-label', ens.has(id) ? 'Retirer des favoris' : 'Ajouter aux favoris');
     });
   });
 }
@@ -30,7 +32,7 @@ export function brancherFavoris(racine) {
 export async function afficher(conteneur, params) {
   const choisir = params[0] === 'choisir';
   const index = Number(params[1]);
-  titre(choisir ? 'Choisir un plat' : 'Recettes');
+  titre(choisir ? 'Choisir un plat' : 'Recettes', { sousTitre: choisir ? 'Touche une recette pour la mettre au planning' : '' });
   const compat = new Set(recettesCompatibles(etat.recettes, etat.profil).map((r) => r.id));
   const index_recherche = etat.recettes.map((r) => ({
     r,
@@ -38,7 +40,7 @@ export async function afficher(conteneur, params) {
   }));
 
   conteneur.innerHTML = `
-    <input type="search" id="recherche" placeholder="Chercher un plat ou un ingrédient">
+    <input type="search" id="recherche" placeholder="Chercher un plat ou un ingrédient" aria-label="Chercher une recette">
     <div class="cases">
       <label class="case"><input type="checkbox" id="f-compat" checked> Compatibles avec mon profil</label>
       <label class="case"><input type="checkbox" id="f-fav"> Favoris</label>
@@ -61,14 +63,15 @@ export async function afficher(conteneur, params) {
         mots.every((m) => texte.includes(m)))
       .map(({ r }) => r);
     conteneur.querySelector('#compte').textContent = `${trouves.length} recette(s)`;
-    conteneur.querySelector('#resultats').innerHTML = trouves.slice(0, limite).map((r) => `
-      <div class="carte cliquable ligne" data-recette="${echapper(r.id)}">
-        <div class="grandit">
-          <div class="gras">${echapper(r.titre)}</div>
-          <div class="doux petit">${r.temps || '?'} min · ${r.portions || '?'} pers.${compat.has(r.id) ? '' : ' · <span class="pastille rouge">hors profil</span>'}</div>
+    conteneur.querySelector('#resultats').innerHTML = (trouves.length ? `<div class="carte serree">${trouves.slice(0, limite).map((r) => `
+      <div class="rangee" data-recette="${echapper(r.id)}" style="cursor:pointer">
+        <div class="tuile ${tuileNeutre(r.id) ? 'neutre' : ''}">${iconePlat(r.id)}</div>
+        <div class="infos">
+          <span class="titre" style="font-size:16px">${echapper(r.titre)}</span>
+          <span class="surtitre">${r.temps || '?'} min · ${r.portions || '?'} pers.${compat.has(r.id) ? '' : ' · hors profil'}</span>
         </div>
         ${boutonFavori(r.id)}
-      </div>`).join('') + (trouves.length > limite ? '<button class="large secondaire" id="plus">Afficher plus</button>' : '');
+      </div>`).join('')}</div>` : '<p class="vide">Aucune recette trouvée.</p>') + (trouves.length > limite ? '<button class="large secondaire" id="plus">Afficher plus</button>' : '');
 
     brancherFavoris(conteneur.querySelector('#resultats'));
     conteneur.querySelectorAll('[data-recette]').forEach((el) => {
