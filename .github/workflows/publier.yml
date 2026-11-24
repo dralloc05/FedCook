@@ -1,4 +1,6 @@
 # Publie l'appli sur GitHub Pages à chaque envoi sur la branche main.
+# Deux étapes séparées (préparer puis publier) : c'est le schéma officiel de GitHub,
+# et ça évite l'erreur « No artifacts named github-pages were found ».
 name: Publier l'appli
 
 on:
@@ -11,24 +13,32 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  publier:
+  preparer:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploiement.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: .
+
+  publier:
+    needs: preparer
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
       - id: deploiement
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+
+        
