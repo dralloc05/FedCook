@@ -1,0 +1,47 @@
+# Chaque lundi matin : récupère les prix du Leclerc Drive de Carpentras via Apify,
+# enregistre data/prix.json dans le dépôt, puis republie l'appli.
+# Si quelque chose cloche, le lancement échoue et GitHub t'envoie un e-mail.
+name: Prix Leclerc
+
+on:
+  schedule:
+    - cron: '23 4 * * 1'   # lundi 4h23 UTC (5h23 à Paris en hiver)
+  workflow_dispatch:        # bouton « Run workflow » pour lancer à la main
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: prix
+  cancel-in-progress: false
+
+jobs:
+  prix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests
+      - name: Récupérer les prix
+        run: python outils/prix/maj_prix.py
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          MAGASIN_ID: ${{ vars.MAGASIN_ID }}
+          NB_INGREDIENTS: ${{ vars.NB_INGREDIENTS }}
+          PAR_INGREDIENT: ${{ vars.PAR_INGREDIENT }}
+          PLAFOND_USD: ${{ vars.PLAFOND_USD }}
+      - name: Enregistrer data/prix.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/prix.json
+          git diff --cached --quiet || git commit -m "Prix Leclerc du $(date +%F)"
+          git push
+
+  publier:
+    needs: prix
+    uses: ./.github/workflows/publier.yml
