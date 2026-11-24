@@ -52,10 +52,18 @@ export async function afficher(conteneur) {
     const donnees = await toutLire();
     // La clé Gemini ne part pas dans la sauvegarde.
     if (donnees.reglages) donnees.reglages = { ...donnees.reglages, cleGemini: '' };
-    const blob = new Blob([JSON.stringify({ format: 'appli-repas', version: 1, date: aujourdhui(), donnees }, null, 1)], { type: 'application/json' });
+    const texte = JSON.stringify({ format: 'appli-repas', version: 1, date: aujourdhui(), donnees }, null, 1);
+    const nom = `sauvegarde-fedcook-${aujourdhui()}.json`;
+    // Dans l'APK, le téléchargement passe par l'appli Android (dossier Téléchargements).
+    if (window.FedCookAndroid?.enregistrer) {
+      const ok = window.FedCookAndroid.enregistrer(nom, texte);
+      toast(ok ? 'Sauvegarde enregistrée dans Téléchargements' : 'La sauvegarde a échoué');
+      return;
+    }
+    const blob = new Blob([texte], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `sauvegarde-fedcook-${aujourdhui()}.json`;
+    a.download = nom;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   });

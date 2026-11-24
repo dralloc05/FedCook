@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Clé de signature fournie par GitHub (secrets ANDROID_KEYSTORE_B64 et ANDROID_KEY_PASSWORD).
+// Sans elle, l'APK est signé avec une clé de test qui change à chaque construction.
+def cleSignature = System.getenv("FEDCOOK_KEYSTORE")
+def motDePasse = System.getenv("FEDCOOK_KEY_PASSWORD")
+def numero = (System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer
+
+android {
+    namespace 'com.dralloc.fedcook'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.dralloc.fedcook'
+        minSdk 29
+        // 34 : évite l'affichage bord à bord forcé d'Android 15 (la page passerait sous la barre d'état).
+        targetSdk 34
+        versionCode numero
+        versionName "1.0.${numero}"
+    }
+
+    signingConfigs {
+        if (cleSignature) {
+            fedcook {
+                storeFile file(cleSignature)
+                storePassword motDePasse
+                keyAlias 'fedcook'
+                keyPassword motDePasse
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig cleSignature ? signingConfigs.fedcook : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}

@@ -2,7 +2,7 @@
 
 Appli web (installable sur Android) qui propose les repas du midi et du soir pour 1 à 7 jours,
 à partir de ce qu'il y a dans le frigo et les placards, avec la liste de courses chiffrée
-aux prix du Leclerc Drive de Carpentras.
+aux prix des Leclerc Drive voisins de Carpentras.
 
 Tout est gratuit sauf la traduction des recettes (environ 3 à 6 $, une seule fois, sur ton crédit Claude).
 
@@ -62,6 +62,9 @@ La lecture du ticket marche aussi sans Gemini (bouton « Lire le ticket », avec
 
 ## 4. Les prix du Leclerc Drive (Apify, chaque lundi)
 
+Il n'y a pas de Leclerc Drive à Carpentras : on relève les prix de 2 ou 3 Drives voisins
+et l'appli utilise leur **moyenne**. Une promo n'est gardée que si tous les Drives l'affichent.
+
 Le site Leclerc Drive bloque les programmes automatiques. On passe donc par l'outil
 « E.Leclerc Drive Scraper » sur Apify, qui sait le lire. Le plan gratuit d'Apify donne 5 $ par mois.
 
@@ -69,18 +72,21 @@ Le site Leclerc Drive bloque les programmes automatiques. On passe donc par l'ou
 2. Récupère ton jeton : **Console Apify → Settings → API & Integrations → Personal API tokens**.
 3. Dans ton dépôt GitHub : **Settings → Secrets and variables → Actions → New repository secret**,
    nom `APIFY_TOKEN`, valeur = ton jeton.
-4. Onglet **Actions → Prix Leclerc → Run workflow** pour le premier lancement.
-5. Ouvre le lancement terminé et lis la ligne `data/prix.json : … — Drive XXXXXX Carpentras`.
-   Copie ce numéro à 6 chiffres dans une variable : **Settings → Secrets and variables → Actions → Variables
-   → New repository variable**, nom `MAGASIN_ID`. Comme ça, on est sûr de toujours viser ton Drive.
+4. Trouve les numéros des Drives : sur leclercdrive.fr, tape 84200, ouvre chaque Drive voisin ;
+   le numéro à 6 chiffres est dans l'adresse de la page, après `magasin-`.
+5. **Settings → Secrets and variables → Actions → Variables → New repository variable**,
+   nom `MAGASIN_ID`, valeur = les numéros séparés par des virgules (ex. : `123456, 234567`).
+6. Onglet **Actions → Prix Leclerc → Run workflow** pour le premier lancement.
 
-Ensuite, ça tourne tout seul chaque lundi matin. Si un lancement échoue (Drive introuvable,
-outil Apify en panne…), GitHub t'envoie un e-mail et `data/prix.json` n'est pas modifié.
+Ensuite, ça tourne tout seul chaque lundi matin. Si un Drive échoue, GitHub t'envoie un e-mail :
+les prix des autres Drives sont quand même enregistrés. `data/prix-drives.json` garde les prix
+de chaque Drive, `data/prix.json` la moyenne que l'appli lit.
 
 **Coût** : le premier lancement relève environ 150 ingrédients × 3 produits = 450 produits
-(environ 0,75 $). Les semaines suivantes, seuls les prix qui ont changé sont facturés.
-Chaque lancement est plafonné à 1,50 $. Si ton compte Apify sert aussi à autre chose,
-les 5 $ gratuits sont partagés. Quand le crédit est épuisé, Apify bloque jusqu'au mois suivant, sans facture.
+par Drive (environ 0,60 à 0,75 $ par Drive). Les semaines suivantes, seuls les prix qui ont changé
+sont facturés. Chaque lancement est plafonné à 1,50 $. Avec 5 $ gratuits par mois, reste à 2 ou 3 Drives.
+Si ton compte Apify sert aussi à autre chose, les 5 $ sont partagés. Quand le crédit est épuisé,
+Apify bloque jusqu'au mois suivant, sans facture.
 
 Réglages possibles (variables du dépôt) : `NB_INGREDIENTS` (150), `PAR_INGREDIENT` (3), `PLAFOND_USD` (1.5).
 
@@ -136,6 +142,20 @@ sinon le téléphone peut garder l'ancienne version en cache.
 
 Tes données (stock, profil, historique) sont dans le navigateur du téléphone.
 **Plus → Réglages → Télécharger une sauvegarde** de temps en temps, et surtout avant de passer à la version APK.
+
+## 8. L'APK Android
+
+Le dossier `android/` contient une petite appli Android qui affiche le site dans une fenêtre
+(caméra, photos, sauvegarde et bouton retour gérés). GitHub la construit : workflow « APK Android ».
+Quand le site change, l'APK se met à jour tout seul : pas besoin de le refaire.
+
+1. Secrets du dépôt (une seule fois) : `ANDROID_KEYSTORE_B64` et `ANDROID_KEY_PASSWORD`
+   (la clé de signature). Garde-les : sans la même clé, impossible de mettre l'appli à jour
+   sans la désinstaller.
+2. Actions → APK Android → Run workflow (il se lance aussi quand `android/` change).
+3. Sur le téléphone : https://github.com/dralloc05/FedCook/releases/download/apk/FedCook.apk
+4. Les données de l'APK sont séparées de celles de Chrome : sauvegarde dans la version Chrome,
+   puis Réglages → Restaurer dans l'APK.
 
 ## Limites connues
 
