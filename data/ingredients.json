@@ -1,0 +1,278 @@
+[
+ {
+  "nom": "oignon",
+  "n": 13
+ },
+ {
+  "nom": "huile d'olive",
+  "n": 9
+ },
+ {
+  "nom": "huile",
+  "n": 8
+ },
+ {
+  "nom": "pommes de terre",
+  "n": 8
+ },
+ {
+  "nom": "oeuf",
+  "n": 7
+ },
+ {
+  "nom": "riz",
+  "n": 7
+ },
+ {
+  "nom": "ail",
+  "n": 6
+ },
+ {
+  "nom": "beurre",
+  "n": 6
+ },
+ {
+  "nom": "tomate",
+  "n": 5
+ },
+ {
+  "nom": "carotte",
+  "n": 4
+ },
+ {
+  "nom": "crème fraîche",
+  "n": 4
+ },
+ {
+  "nom": "parmesan",
+  "n": 4
+ },
+ {
+  "nom": "poivron",
+  "n": 4
+ },
+ {
+  "nom": "tomates concassées",
+  "n": 4
+ },
+ {
+  "nom": "blanc de poulet",
+  "n": 3
+ },
+ {
+  "nom": "champignons de Paris",
+  "n": 3
+ },
+ {
+  "nom": "courgette",
+  "n": 3
+ },
+ {
+  "nom": "curry",
+  "n": 3
+ },
+ {
+  "nom": "emmental râpé",
+  "n": 3
+ },
+ {
+  "nom": "herbes de Provence",
+  "n": 3
+ },
+ {
+  "nom": "jambon",
+  "n": 3
+ },
+ {
+  "nom": "lait de coco",
+  "n": 3
+ },
+ {
+  "nom": "lardons",
+  "n": 3
+ },
+ {
+  "nom": "pâtes",
+  "n": 3
+ },
+ {
+  "nom": "viande hachée de bœuf",
+  "n": 3
+ },
+ {
+  "nom": "bouillon de légumes",
+  "n": 2
+ },
+ {
+  "nom": "citron",
+  "n": 2
+ },
+ {
+  "nom": "cumin",
+  "n": 2
+ },
+ {
+  "nom": "lait",
+  "n": 2
+ },
+ {
+  "nom": "pois chiches",
+  "n": 2
+ },
+ {
+  "nom": "salade",
+  "n": 2
+ },
+ {
+  "nom": "sauce soja",
+  "n": 2
+ },
+ {
+  "nom": "sauce tomate",
+  "n": 2
+ },
+ {
+  "nom": "thon en conserve",
+  "n": 2
+ },
+ {
+  "nom": "épinards",
+  "n": 2
+ },
+ {
+  "nom": "aubergine",
+  "n": 1
+ },
+ {
+  "nom": "brocoli",
+  "n": 1
+ },
+ {
+  "nom": "chou chinois",
+  "n": 1
+ },
+ {
+  "nom": "cuisse de poulet",
+  "n": 1
+ },
+ {
+  "nom": "dos de cabillaud",
+  "n": 1
+ },
+ {
+  "nom": "fromage blanc",
+  "n": 1
+ },
+ {
+  "nom": "gingembre",
+  "n": 1
+ },
+ {
+  "nom": "gnocchis",
+  "n": 1
+ },
+ {
+  "nom": "haricots rouges",
+  "n": 1
+ },
+ {
+  "nom": "haricots verts",
+  "n": 1
+ },
+ {
+  "nom": "lentilles corail",
+  "n": 1
+ },
+ {
+  "nom": "mayonnaise",
+  "n": 1
+ },
+ {
+  "nom": "maïs",
+  "n": 1
+ },
+ {
+  "nom": "mozzarella",
+  "n": 1
+ },
+ {
+  "nom": "nouilles chinoises",
+  "n": 1
+ },
+ {
+  "nom": "olives noires",
+  "n": 1
+ },
+ {
+  "nom": "pain de mie",
+  "n": 1
+ },
+ {
+  "nom": "paprika",
+  "n": 1
+ },
+ {
+  "nom": "pavé de saumon",
+  "n": 1
+ },
+ {
+  "nom": "persil",
+  "n": 1
+ },
+ {
+  "nom": "pesto",
+  "n": 1
+ },
+ {
+  "nom": "petits pois surgelés",
+  "n": 1
+ },
+ {
+  "nom": "poireau",
+  "n": 1
+ },
+ {
+  "nom": "pâte brisée",
+  "n": 1
+ },
+ {
+  "nom": "pâte à pizza",
+  "n": 1
+ },
+ {
+  "nom": "ras el hanout",
+  "n": 1
+ },
+ {
+  "nom": "reblochon",
+  "n": 1
+ },
+ {
+  "nom": "riz à risotto",
+  "n": 1
+ },
+ {
+  "nom": "semoule",
+  "n": 1
+ },
+ {
+  "nom": "spaghetti",
+  "n": 1
+ },
+ {
+  "nom": "steak haché",
+  "n": 1
+ },
+ {
+  "nom": "tomates cerises",
+  "n": 1
+ },
+ {
+  "nom": "tortillas",
+  "n": 1
+ },
+ {
+  "nom": "vinaigre",
+  "n": 1
+ }
+]
