@@ -1,6 +1,6 @@
 // Service worker : l'appli s'ouvre même sans réseau.
 // Change VERSION à chaque mise à jour du code pour forcer le rechargement.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = `appli-repas-${VERSION}`;
 const COQUILLE = [
   './',
@@ -43,7 +43,12 @@ const COQUILLE = [
 ];
 
 self.addEventListener('install', (ev) => {
-  ev.waitUntil(caches.open(CACHE).then((c) => c.addAll(COQUILLE)).then(() => self.skipWaiting()));
+  // cache: 'reload' : on prend les fichiers sur le serveur, pas une vieille copie gardée par le navigateur.
+  ev.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(COQUILLE.map((url) => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (ev) => {
@@ -77,7 +82,9 @@ self.addEventListener('fetch', (ev) => {
   // Code de l'appli : le cache d'abord, mis à jour en arrière-plan.
   ev.respondWith(
     caches.match(req).then((enCache) => {
-      const reseau = fetch(req)
+      // 'no-cache' : le navigateur redemande au serveur si le fichier a changé (rapide s'il n'a pas changé).
+      // (Pas pour l'ouverture de la page elle-même : le navigateur interdit de modifier cette requête.)
+      const reseau = fetch(req.mode === 'navigate' ? req : new Request(req.url, { cache: 'no-cache' }))
         .then((rep) => {
           if (rep.ok) {
             const copie = rep.clone();
