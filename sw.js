@@ -1,6 +1,6 @@
 // Service worker : l'appli s'ouvre même sans réseau.
 // Change VERSION à chaque mise à jour du code pour forcer le rechargement.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = `appli-repas-${VERSION}`;
 const COQUILLE = [
   './',

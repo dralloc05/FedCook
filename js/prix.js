@@ -42,6 +42,8 @@ export function contenance(p) {
     if (u === 'l') return { qte: (p.prix / p.prixUnite) * 1000, unite: 'ml' };
     if (['pce', 'piece', 'pièce', 'u', 'unite', 'unité'].includes(u)) return { qte: Math.round(p.prix / p.prixUnite), unite: 'piece' };
   }
+  // En dernier recours, la contenance indiquée par le catalogue.
+  if (p.contenanceCatalogue && p.contenanceCatalogue.qte > 0) return p.contenanceCatalogue;
   return null;
 }
 
@@ -53,19 +55,25 @@ export function choisirProduit(ctx, nom) {
   let retenu = null;
   const idChoisi = ctx.choix[n];
   if (idChoisi) retenu = produits.find((p) => String(p.id) === String(idChoisi)) || null;
-  if (!retenu) {
+  // Le moins cher au kilo parmi les produits en stock ; sinon parmi tous
+  // (la disponibilité du Drive change d'heure en heure, le prix reste une bonne estimation).
+  const moinsCherAuKilo = (liste) => {
     let meilleur = Infinity;
-    for (const p of produits) {
-      if (p.enStock === false) continue;
+    let choix = null;
+    for (const p of liste) {
       const c = contenance(p);
       if (!c) continue;
       const parUnite = prixEffectif(p) / c.qte;
       if (parUnite < meilleur) {
         meilleur = parUnite;
-        retenu = p;
+        choix = p;
       }
     }
-  }
+    return choix;
+  };
+  if (!retenu) retenu = moinsCherAuKilo(produits.filter((p) => p.enStock !== false)) || moinsCherAuKilo(produits);
+  // Aucune contenance connue : le moins cher tout court (on comptera un paquet).
+  if (!retenu && produits.length) retenu = produits.reduce((a, b) => (prixEffectif(b) < prixEffectif(a) ? b : a));
   ctx.cache.set(n, retenu);
   return retenu;
 }
@@ -88,7 +96,13 @@ export function estimerAchat(ctx, nom, qte, unite, gParPiece = null) {
         qteAchetee: paquets * c.qte,
         uniteAchat: c.unite,
         source: 'drive',
+        approx: !!produit.approx,
       };
+    }
+    // Quantité impossible à comparer (« 2 feuilles de laurier » et un sachet de 10 g) :
+    // un paquet suffit presque toujours pour ces petites quantités.
+    if (!ctx.tickets.get(normaliser(nom))) {
+      return { cout: prixEffectif(produit), paquets: 1, produit, qteAchetee: qte, uniteAchat: unite, source: 'drive', approx: true };
     }
   }
   const ticket = ctx.tickets.get(normaliser(nom));

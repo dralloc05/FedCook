@@ -259,6 +259,42 @@ test('catalogue complet : bon produit pour chaque ingrédient', () => {
   assert.equal(achat.qteAchetee, 3000, 'pack de 12x25cl = 3 L');
 });
 
+test('catalogue complet : produits proches, variantes et ruptures', () => {
+  let id = 500;
+  const P = (nom, format, prix, prixUnite, unite, rayon, famille, sousFamille, extra = {}) =>
+    ({ id: id++, nom, nomComplet: `${nom} - ${format}`, format, prix, prixPromo: null, prixUnite, unite, enStock: true, rayon, famille, sousFamille, ...extra });
+  const produits = [
+    P('Sauce Soja', '125ml', 0.83, 6.64, 'l', 'Épicerie salée', 'Sauces', 'Sauces du monde'),
+    P('Bâtonnets Poissons panés Eco+', 'x15 - 450g', 1.94, 4.31, 'kg', 'Surgelés', 'Poissons', 'Poissons panés'),
+    P('Bouillon de poule Knorr', 'x15 - 150g', 1.17, 7.8, 'kg', 'Épicerie salée', 'Aides culinaires', 'Bouillons'),
+    P('Ail semoule Ducros', '140g', 2.44, 17.43, 'kg', 'Épicerie salée', 'Épices', 'Ail et oignon'),
+    P('Ail blanc', 'Filet 250g', 1.49, 5.96, 'kg', 'Fruits et Légumes', 'Légumes', 'Ail'),
+    P('Lait chocolaté Cacolac', '1L', 2.77, 2.77, 'l', 'Crèmerie', 'Laits', 'Laits aromatisés'),
+    P('Lait demi-écrémé', '1L', 1.15, 1.15, 'l', 'Crèmerie', 'Laits', 'Laits demi-écrémés', { enStock: false }),
+    P('Laurier Ducros', 'Feuilles - 4g', 1.6, null, null, 'Épicerie salée', 'Épices', 'Herbes'),
+    P('Jarret de porc', '800g', 5.5, 6.88, 'kg', 'Boucherie', 'Porc', 'Porc'),
+    P('Bavette', '250g', 5.9, 23.6, 'kg', 'Boucherie', 'Boeuf', 'Boeuf'),
+    P('Chorizo doux', '200g', 2.4, 12, 'kg', 'Charcuterie Traiteur', 'Charcuteries', 'Saucissons'),
+  ];
+  for (let i = 0; i < 100; i++) produits.push(P(`Sauce tomate ${i}`, '400g', 1.2, 3, 'kg', 'Épicerie salée', 'Sauces', 'Sauces tomate'));
+  const idx = indexerCatalogue(produits);
+  const noms = (ing) => chercherDansCatalogue(idx, ing).map((p) => `${p.approx ? '≈' : ''}${p.nom}`);
+  assert.deepEqual(noms('sauce worcestershire'), [], 'pas de sauce soja à la place');
+  assert.deepEqual(noms('bouillon de poisson'), ['≈Bouillon de poule Knorr'], 'pas de bâtonnets de poisson');
+  assert.deepEqual(noms("gousse d'ail"), ['Ail blanc']);
+  assert.deepEqual(noms('lait'), ['Lait demi-écrémé'], 'pas de lait chocolaté, même si le vrai lait est en rupture');
+  assert.deepEqual(noms('feuille de laurier'), ['≈Laurier Ducros']);
+  assert.deepEqual(noms('jarret de bœuf'), [], 'pas de jarret de porc');
+  assert.deepEqual(noms('Steak de bœuf (rumsteck ou bavette)'), ['Bavette']);
+  assert.deepEqual(noms('Saucisse fumée type andouille ou chorizo'), ['Chorizo doux']);
+  const ctx = creerContextePrix({ produits });
+  const laurier = estimerAchat(ctx, 'feuille de laurier', 2, 'piece');
+  assert.equal(laurier.source, 'drive');
+  assert.equal(laurier.paquets, 1);
+  assert.ok(laurier.approx);
+  assert.equal(estimerAchat(ctx, 'lait', 500, 'ml').cout, 1.15);
+});
+
 import { analyserTicket } from '../js/ticket-texte.js';
 test('ticket : lecture des lignes, quantité, remise, total', () => {
   const texte = `E.LECLERC CARPENTRAS

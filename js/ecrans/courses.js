@@ -42,8 +42,9 @@ function dessiner(conteneur) {
   const ligneHTML = (l) => {
     const cle = normaliser(l.nom);
     const fait = coches.has(cle);
+    // « ≈ » : produit proche ou quantité estimée, le prix est une estimation.
     const produit = l.produit
-      ? `${echapper(l.produit.nom)}${l.produit.format ? ` · ${echapper(l.produit.format)}` : ''}`
+      ? `${l.approx ? '≈ ' : ''}${echapper(l.produit.nom)}${l.produit.format ? ` · ${echapper(l.produit.format)}` : ''}`
       : l.source === 'ticket' ? 'Prix de ton dernier ticket' : 'Prix inconnu';
     const detailPrix = l.source === 'drive'
       ? `${l.paquets} × ${euros(prixEffectif(l.produit))}${l.produit.prixPromo ? ' <span class="pastille orange">promo</span>' : ''}`
