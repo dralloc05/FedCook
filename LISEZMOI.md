@@ -157,6 +157,20 @@ Quand le site change, l'APK se met à jour tout seul : pas besoin de le refaire.
 4. Les données de l'APK sont séparées de celles de Chrome : sauvegarde dans la version Chrome,
    puis Réglages → Restaurer dans l'APK.
 
+## 9. Recettes ajoutées à la main et plats tendance
+
+- `data/recettes-maison.json` : tes recettes à toi (les French tacos, par exemple). Même format que
+  `recettes.json`, mais dans un fichier à part : la traduction ne l'écrase jamais.
+- Le planning met en avant les plats populaires ou tendance (liste des familles dans `js/popularite.js`,
+  à compléter si un plat te manque) et évite deux plats de la même famille dans la semaine.
+- Les préparations de base (pâte à pizza, sauces, riz nature, purée seule…) ne sont jamais proposées comme repas.
+
+## 10. Formats de data/prix.json acceptés
+
+- Relevé par ingrédient (`ingredients`), celui du workflow « Prix Leclerc » ;
+- ou catalogue complet du magasin (`produits`, avec `nom`, `format`, `prix`, `prixUnite`, `unite`, `rayon`,
+  `famille`, `sousFamille`) : l'appli cherche elle-même les produits de chaque ingrédient (`js/catalogue.js`).
+
 ## Limites connues
 
 - 1 ml est compté comme 1 g pour passer de l'un à l'autre (approximation).

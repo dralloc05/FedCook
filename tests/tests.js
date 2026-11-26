@@ -167,6 +167,98 @@ test('planning : performance avec 15 000 recettes', () => {
   assert.ok(ms < 8000);
 });
 
+import { estUnRepas, familleDe, popularites } from '../js/popularite.js';
+import { indexerCatalogue, chercherDansCatalogue } from '../js/catalogue.js';
+
+const maison = JSON.parse(readFileSync(new URL('../data/recettes-maison.json', import.meta.url)));
+
+test('recettes maison : French tacos valides et compatibles', () => {
+  assert.ok(maison.length >= 3);
+  for (const r of maison) {
+    assert.ok(r.id.startsWith('maison-') && r.titre && r.portions > 0 && r.etapes.length >= 5);
+    for (const i of r.ingredients) assert.ok(['g', 'ml', 'piece'].includes(i.unite), r.id + ' ' + i.nom);
+    assert.ok(estUnRepas(r), r.titre);
+    assert.equal(familleDe(r).id, 'french-tacos');
+  }
+  assert.equal(recettesCompatibles(maison, profil).length, maison.length);
+  assert.equal(recettesCompatibles(maison, { ...profil, materiel: ['plaques'] }).length, 0, 'il faut un four pour les frites');
+});
+
+test('pas de « pâte à pizza » ni de sauce seule dans le planning', () => {
+  const ing = (...n) => n.map((x) => ({ nom: x, qte: 100, unite: 'g' }));
+  const nonRepas = [
+    ['Pâte à pizza', ing('farine', 'eau', 'levure', 'sel', "huile d'olive")],
+    ['Pâte à pizza express', ing('farine', 'eau', 'levure chimique', 'sel')],
+    ['Sauce tomate maison', ing('tomate', 'oignon', 'ail', "huile d'olive")],
+    ['Riz basmati', ing('riz basmati', 'eau', 'sel')],
+    ['Purée maison', ing('pommes de terre', 'lait', 'beurre', 'sel')],
+    ['Crêpes', ing('farine', 'oeuf', 'lait', 'sucre')],
+  ];
+  for (const [titre, ingredients] of nonRepas) assert.ok(!estUnRepas({ titre, ingredients }), titre);
+  for (const r of recettes) assert.ok(estUnRepas(r), r.titre);
+  // Même avec plein de farine qui périme, la pâte à pizza n'est jamais proposée.
+  const avecPate = recettes.concat(nonRepas.map(([titre, ingredients], k) => ({
+    id: `nr${k}`, titre, type: 'plat', portions: 2, temps: 10, regimes: ['vegetarien', 'vegan', 'sans_porc', 'sans_lactose'], materiel: [], ingredients, etapes: [{ texte: '…' }],
+  })));
+  const stock = [{ id: 'f', nom: 'Farine', ingredient: 'farine', qte: 2000, unite: 'g', peremption: '2026-11-25' }];
+  const res = genererPlanning({
+    recettes: avecPate, profil: { ...profil, base: [] }, stock, ctxPrix: creerContextePrix(prixData), jours: 7, personnes: 2, budget: 0,
+    debut: '2026-11-24', aujourdhui: '2026-11-24', historique: { plats: [] }, favoris: [], aleatoire: rngFixe(5),
+  });
+  assert.ok(res.repas.every((r) => !r.recetteId.startsWith('nr')));
+});
+
+test('popularité : plats tendance devant, variété des familles', () => {
+  assert.equal(familleDe({ titre: 'French Tacos poulet' }).id, 'french-tacos');
+  assert.equal(familleDe({ titre: 'Smash burger maison' }).id, 'smash-burger');
+  assert.equal(familleDe({ titre: 'Ragoût de panais au topinambour' }), null);
+  // 30 recettes d'exemple + tacos + 400 plats obscurs : avec un gros budget, les plats connus doivent dominer.
+  const obscurs = [];
+  for (let i = 0; i < 400; i++) {
+    obscurs.push({ id: `o${i}`, titre: `Ragoût de panais n°${i}`, type: 'plat', portions: 2, temps: 30, regimes: ['vegetarien', 'vegan', 'sans_porc', 'sans_lactose', 'sans_gluten'], materiel: ['plaques'],
+      ingredients: [{ nom: `panais ${i}`, qte: 300, unite: 'g' }, { nom: `topinambour ${i % 50}`, qte: 200, unite: 'g' }, { nom: 'oignon', qte: 1, unite: 'piece', g: 100 }], etapes: [{ texte: '…' }] });
+  }
+  const toutes = maison.concat(recettes, obscurs);
+  const pop = popularites(toutes);
+  assert.ok(pop.get('maison-french-tacos-poulet').score > pop.get('o1').score + 0.4);
+  const res = genererPlanning({
+    recettes: toutes, profil, stock: [], ctxPrix: creerContextePrix(prixData), jours: 7, personnes: 2, budget: 200,
+    debut: '2026-11-24', aujourdhui: '2026-11-24', historique: { plats: [] }, favoris: [], aleatoire: rngFixe(9),
+  });
+  const obscursChoisis = res.repas.filter((r) => r.recetteId.startsWith('o')).length;
+  assert.ok(obscursChoisis <= 2, `${obscursChoisis} plats obscurs sur 14`);
+  const familles = res.repas.map((r) => pop.get(r.recetteId).famille).filter(Boolean);
+  const tacos = familles.filter((f) => f === 'french-tacos').length;
+  assert.ok(tacos <= 1, 'pas trois French tacos dans la même semaine');
+});
+
+test('catalogue complet : bon produit pour chaque ingrédient', () => {
+  let id = 1;
+  const P = (nom, complet, prix, prixUnite, unite, rayon, famille, sousFamille) =>
+    ({ id: id++, nom, nomComplet: complet, prix, prixPromo: null, prixUnite, unite, enStock: true, rayon, famille, sousFamille });
+  const produits = [
+    P('Beurre doux Eco+', 'Beurre doux Eco+ - 250g', 1.99, 7.96, 'kg', 'Crèmerie', 'Beurres et Margarines', 'Beurres doux'),
+    P('Beurre de cacahuète', 'Beurre de cacahuète - 350g', 2.2, 6.29, 'kg', 'Épicerie sucrée', 'Pâtes à tartiner', 'Beurres de cacahuète'),
+    P('Biscuits petit beurre', 'Biscuits petit beurre - 200g', 1.5, 7.5, 'kg', 'Épicerie sucrée', 'Biscuits', 'Biscuits secs'),
+    P('Blanc de poulet', 'Blanc de poulet x4 tranches - 160g', 1.9, 11.88, 'kg', 'Charcuterie Traiteur', 'Charcuteries', 'Jambons et blancs de volaille'),
+    P('Filet de poulet', 'Filet de poulet - 300g', 4.5, 15, 'kg', 'Boucherie Volaille', 'Volailles', 'Poulet'),
+    P('Spaghetti Barilla', 'Spaghetti Barilla - 500g', 1.29, 2.58, 'kg', 'Épicerie salée', 'Pâtes', 'Spaghetti'),
+    P('Pâtée chien au poulet', 'Pâtée chien au poulet - 400g', 0.9, 2.25, 'kg', 'Animalerie', 'Chiens', 'Pâtées'),
+    P('Bière blonde Heineken', 'Bière blonde Heineken 12x25cl', 7.47, 2.49, 'l', 'Boissons', 'Bières et Cidres', 'Bières blondes'),
+  ];
+  const idx = indexerCatalogue(produits);
+  const noms = (ing) => chercherDansCatalogue(idx, ing).map((p) => p.nom);
+  assert.deepEqual(noms('beurre'), ['Beurre doux Eco+']);
+  assert.deepEqual(noms('blanc de poulet'), ['Filet de poulet']);
+  assert.deepEqual(noms('poulet'), ['Filet de poulet']);
+  assert.deepEqual(noms('pâtes'), ['Spaghetti Barilla']);
+  const ctx = creerContextePrix({ maj: '2026-11-26', produits });
+  const achat = estimerAchat(ctx, 'bière', 600, 'ml');
+  assert.equal(achat.source, 'drive');
+  assert.equal(achat.paquets, 1);
+  assert.equal(achat.qteAchetee, 3000, 'pack de 12x25cl = 3 L');
+});
+
 import { analyserTicket } from '../js/ticket-texte.js';
 test('ticket : lecture des lignes, quantité, remise, total', () => {
   const texte = `E.LECLERC CARPENTRAS

@@ -5,6 +5,7 @@ import { genererPlanning, calculerCourses, recettesCompatibles } from '../planni
 import { echapper, euros } from '../texte.js';
 import { aujourdhui, dateLisible } from '../unites.js';
 import { iconePlat, tuileNeutre } from '../icones.js';
+import { popularites } from '../popularite.js';
 
 function parametres(extra = {}) {
   return {
@@ -105,7 +106,8 @@ function afficherPlanning(conteneur) {
     <div class="carte serree">
       ${repas.map((r) => {
         const rec = etat.parId.get(r.recetteId);
-        const info = `${r.moment === 'midi' ? 'Midi' : 'Soir'}${rec ? ` · ${rec.temps || '?'} min` : ''}${r.fait ? ' · cuisiné' : ''}`;
+        const tendance = rec && popularites(etat.recettes).get(rec.id)?.tendance;
+        const info = `${r.moment === 'midi' ? 'Midi' : 'Soir'}${rec ? ` · ${rec.temps || '?'} min` : ''}${tendance ? ' · tendance' : ''}${r.fait ? ' · cuisiné' : ''}`;
         return `<div class="rangee ${r.fait ? 'fait' : ''}" style="flex-wrap:wrap">
           <div class="tuile ${rec && tuileNeutre(rec.id) ? 'neutre' : ''}">${iconePlat(r.recetteId)}</div>
           <a class="infos" href="#/recette/${encodeURIComponent(r.recetteId)}/${r.personnes}" style="color:inherit;font-weight:inherit">

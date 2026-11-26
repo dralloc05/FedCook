@@ -1,0 +1,102 @@
+[
+  {
+    "id": "maison-french-tacos-poulet",
+    "titre": "French tacos poulet, sauce fromagère",
+    "type": "plat",
+    "portions": 2,
+    "temps": 40,
+    "regimes": ["sans_porc"],
+    "materiel": ["plaques", "four"],
+    "source": "maison",
+    "ingredients": [
+      {"nom": "tortillas de blé", "qte": 2, "unite": "piece", "g": 70},
+      {"nom": "blanc de poulet", "qte": 300, "unite": "g"},
+      {"nom": "frites surgelées", "qte": 300, "unite": "g"},
+      {"nom": "crème liquide", "qte": 200, "unite": "ml"},
+      {"nom": "emmental râpé", "qte": 60, "unite": "g"},
+      {"nom": "cheddar en tranches", "qte": 4, "unite": "piece", "g": 20},
+      {"nom": "sauce algérienne", "qte": 40, "unite": "g"},
+      {"nom": "paprika", "qte": 0, "unite": "g"},
+      {"nom": "cumin", "qte": 0, "unite": "g"},
+      {"nom": "ail en poudre", "qte": 0, "unite": "g"},
+      {"nom": "huile", "qte": 15, "unite": "ml"},
+      {"nom": "sel", "qte": 0, "unite": "g"},
+      {"nom": "poivre", "qte": 0, "unite": "g"}
+    ],
+    "etapes": [
+      {"texte": "Préchauffer le four à 220 °C et y enfourner les frites sur une plaque, selon le temps indiqué sur le paquet.", "min": 20},
+      {"texte": "Couper le poulet en petits morceaux. Le mélanger avec une cuillère à café de paprika, une demi de cumin, une pincée d'ail en poudre, du sel, du poivre et la moitié de l'huile."},
+      {"texte": "Faire dorer le poulet dans une poêle bien chaude avec le reste de l'huile, en remuant, jusqu'à ce qu'il soit bien cuit.", "min": 8},
+      {"texte": "Sauce fromagère : chauffer la crème dans une petite casserole sans la faire bouillir, ajouter l'emmental râpé et remuer jusqu'à ce qu'il fonde et que la sauce nappe la cuillère. Poivrer.", "min": 5},
+      {"texte": "Poser une tortilla à plat. Étaler un peu de sauce algérienne au centre, puis ajouter la moitié du poulet, la moitié des frites, 2 tranches de cheddar et une bonne cuillère de sauce fromagère."},
+      {"texte": "Replier les quatre bords de la tortilla vers le centre pour former un carré bien fermé. Faire pareil avec la deuxième."},
+      {"texte": "Faire dorer les tacos dans une poêle sèche bien chaude, d'abord côté pliures pour les sceller, en appuyant avec une spatule, puis de l'autre côté. Un appareil à panini marche aussi.", "min": 5},
+      {"texte": "Couper en deux et servir avec le reste de sauce fromagère à côté."}
+    ]
+  },
+  {
+    "id": "maison-french-tacos-viande-hachee",
+    "titre": "French tacos viande hachée, sauce fromagère",
+    "type": "plat",
+    "portions": 2,
+    "temps": 40,
+    "regimes": ["sans_porc"],
+    "materiel": ["plaques", "four"],
+    "source": "maison",
+    "ingredients": [
+      {"nom": "tortillas de blé", "qte": 2, "unite": "piece", "g": 70},
+      {"nom": "viande hachée", "qte": 300, "unite": "g"},
+      {"nom": "oignon", "qte": 1, "unite": "piece", "g": 100},
+      {"nom": "frites surgelées", "qte": 300, "unite": "g"},
+      {"nom": "crème liquide", "qte": 200, "unite": "ml"},
+      {"nom": "emmental râpé", "qte": 60, "unite": "g"},
+      {"nom": "cheddar en tranches", "qte": 4, "unite": "piece", "g": 20},
+      {"nom": "sauce samouraï", "qte": 40, "unite": "g"},
+      {"nom": "paprika", "qte": 0, "unite": "g"},
+      {"nom": "cumin", "qte": 0, "unite": "g"},
+      {"nom": "huile", "qte": 10, "unite": "ml"},
+      {"nom": "sel", "qte": 0, "unite": "g"},
+      {"nom": "poivre", "qte": 0, "unite": "g"}
+    ],
+    "etapes": [
+      {"texte": "Préchauffer le four à 220 °C et y enfourner les frites sur une plaque, selon le temps indiqué sur le paquet.", "min": 20},
+      {"texte": "Émincer finement l'oignon et le faire revenir dans l'huile jusqu'à ce qu'il soit doré.", "min": 4},
+      {"texte": "Ajouter la viande hachée, une cuillère à café de paprika, une demi de cumin, du sel et du poivre. Cuire en émiettant la viande jusqu'à ce qu'elle soit bien cuite.", "min": 7},
+      {"texte": "Sauce fromagère : chauffer la crème dans une petite casserole sans la faire bouillir, ajouter l'emmental râpé et remuer jusqu'à ce qu'il fonde et que la sauce nappe la cuillère. Poivrer.", "min": 5},
+      {"texte": "Poser une tortilla à plat. Étaler un peu de sauce samouraï au centre, puis ajouter la moitié de la viande, la moitié des frites, 2 tranches de cheddar et une bonne cuillère de sauce fromagère."},
+      {"texte": "Replier les quatre bords de la tortilla vers le centre pour former un carré bien fermé. Faire pareil avec la deuxième."},
+      {"texte": "Faire dorer les tacos dans une poêle sèche bien chaude, d'abord côté pliures pour les sceller, en appuyant avec une spatule, puis de l'autre côté. Un appareil à panini marche aussi.", "min": 5},
+      {"texte": "Couper en deux et servir avec le reste de sauce fromagère à côté."}
+    ]
+  },
+  {
+    "id": "maison-french-tacos-cordon-bleu",
+    "titre": "French tacos cordon bleu, sauce fromagère",
+    "type": "plat",
+    "portions": 2,
+    "temps": 35,
+    "regimes": [],
+    "materiel": ["plaques", "four"],
+    "source": "maison",
+    "ingredients": [
+      {"nom": "tortillas de blé", "qte": 2, "unite": "piece", "g": 70},
+      {"nom": "cordon bleu", "qte": 2, "unite": "piece", "g": 100},
+      {"nom": "frites surgelées", "qte": 300, "unite": "g"},
+      {"nom": "crème liquide", "qte": 200, "unite": "ml"},
+      {"nom": "emmental râpé", "qte": 60, "unite": "g"},
+      {"nom": "cheddar en tranches", "qte": 4, "unite": "piece", "g": 20},
+      {"nom": "sauce algérienne", "qte": 40, "unite": "g"},
+      {"nom": "huile", "qte": 10, "unite": "ml"},
+      {"nom": "poivre", "qte": 0, "unite": "g"}
+    ],
+    "etapes": [
+      {"texte": "Préchauffer le four à 220 °C et y enfourner les frites sur une plaque, selon le temps indiqué sur le paquet.", "min": 20},
+      {"texte": "Faire dorer les cordons bleus dans l'huile à la poêle, environ 5 minutes de chaque côté, puis les couper en lanières.", "min": 10},
+      {"texte": "Sauce fromagère : chauffer la crème dans une petite casserole sans la faire bouillir, ajouter l'emmental râpé et remuer jusqu'à ce qu'il fonde et que la sauce nappe la cuillère. Poivrer.", "min": 5},
+      {"texte": "Poser une tortilla à plat. Étaler un peu de sauce algérienne au centre, puis ajouter un cordon bleu en lanières, la moitié des frites, 2 tranches de cheddar et une bonne cuillère de sauce fromagère."},
+      {"texte": "Replier les quatre bords de la tortilla vers le centre pour former un carré bien fermé. Faire pareil avec la deuxième."},
+      {"texte": "Faire dorer les tacos dans une poêle sèche bien chaude, d'abord côté pliures pour les sceller, en appuyant avec une spatule, puis de l'autre côté. Un appareil à panini marche aussi.", "min": 5},
+      {"texte": "Couper en deux et servir avec le reste de sauce fromagère à côté."}
+    ]
+  }
+]

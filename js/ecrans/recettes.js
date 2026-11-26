@@ -2,6 +2,7 @@
 
 import { etat, sauver, titre, toast, aller } from '../etat.js';
 import { recettesCompatibles } from '../planning.js';
+import { popularites } from '../popularite.js';
 import { echapper, normaliser } from '../texte.js';
 import { remplacerRepas } from './planning.js';
 import { ICONES, iconePlat, tuileNeutre } from '../icones.js';
@@ -34,10 +35,15 @@ export async function afficher(conteneur, params) {
   const index = Number(params[1]);
   titre(choisir ? 'Choisir un plat' : 'Recettes', { sousTitre: choisir ? 'Touche une recette pour la mettre au planning' : '' });
   const compat = new Set(recettesCompatibles(etat.recettes, etat.profil).map((r) => r.id));
-  const index_recherche = etat.recettes.map((r) => ({
-    r,
-    texte: normaliser(`${r.titre} ${(r.ingredients || []).map((i) => i.nom).join(' ')}`),
-  }));
+  // Les plats populaires et tendance d'abord.
+  const pop = popularites(etat.recettes);
+  const index_recherche = etat.recettes
+    .map((r) => ({
+      r,
+      texte: normaliser(`${r.titre} ${(r.ingredients || []).map((i) => i.nom).join(' ')}`),
+      score: pop.get(r.id)?.score || 0,
+    }))
+    .sort((a, b) => b.score - a.score);
 
   conteneur.innerHTML = `
     <input type="search" id="recherche" placeholder="Chercher un plat ou un ingrédient" aria-label="Chercher une recette">
@@ -68,7 +74,7 @@ export async function afficher(conteneur, params) {
         <div class="tuile ${tuileNeutre(r.id) ? 'neutre' : ''}">${iconePlat(r.id)}</div>
         <div class="infos">
           <span class="titre" style="font-size:16px">${echapper(r.titre)}</span>
-          <span class="surtitre">${r.temps || '?'} min · ${r.portions || '?'} pers.${compat.has(r.id) ? '' : ' · hors profil'}</span>
+          <span class="surtitre">${r.temps || '?'} min · ${r.portions || '?'} pers.${pop.get(r.id)?.tendance ? ' · tendance' : ''}${compat.has(r.id) ? '' : ' · hors profil'}</span>
         </div>
         ${boutonFavori(r.id)}
       </div>`).join('')}</div>` : '<p class="vide">Aucune recette trouvée.</p>') + (trouves.length > limite ? '<button class="large secondaire" id="plus">Afficher plus</button>' : '');

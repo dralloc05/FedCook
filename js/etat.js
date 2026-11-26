@@ -45,6 +45,14 @@ export function toast(message, duree = 2600) {
   toast.minuteur = setTimeout(() => { el.hidden = true; }, duree);
 }
 
+// Nom des Drives d'où viennent les prix, pour l'affichage.
+export function libelleMagasin() {
+  const m = etat.prixData?.magasin;
+  if (!m) return '';
+  const n = m.drives?.length || 1;
+  return n > 1 ? `moyenne de ${n} Drives (${m.nom})` : (m.nom ? `Drive ${m.nom}` : '');
+}
+
 // Titre de l'écran, avec une petite ligne au-dessus et des boutons à droite si besoin.
 export function titre(texte, options = {}) {
   document.getElementById('titre-page').textContent = texte;

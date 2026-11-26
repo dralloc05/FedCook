@@ -6,6 +6,7 @@ import { convertir, ajouterJours, joursEntre } from './unites.js';
 import { retirer, disponible, ajouter, nouvelId } from './stock.js';
 import { estimerAchat } from './prix.js';
 import { peremptionParDefaut, rayonDe, RAYONS } from './peremption.js';
+import { estUnRepas, popularites } from './popularite.js';
 
 export const RESTRICTIONS = [
   ['vegetarien', 'Végétarien'],
@@ -30,6 +31,20 @@ export const BASES_PROPOSEES = ['sel', 'poivre', 'huile d\'olive', 'huile', 'vin
 
 const TYPES_REPAS = new Set(['plat']);
 const POOL_MAX = 700;
+const POOL_STOCK = 250; // recettes qui utilisent le stock
+const POOL_POPULAIRES = 300; // plats populaires ou tendance
+const SEUIL_POPULAIRE = 0.55;
+
+// « Pâte à pizza », « Sauce bolognaise », « Riz basmati »… ne sont pas des repas.
+const repasConnus = new WeakMap();
+function repasValable(r) {
+  let ok = repasConnus.get(r);
+  if (ok === undefined) {
+    ok = estUnRepas(r);
+    repasConnus.set(r, ok);
+  }
+  return ok;
+}
 
 // ---------- Compatibilité avec le profil ----------
 
@@ -41,6 +56,7 @@ export function recettesCompatibles(recettes, profil) {
     .filter(Boolean);
   return recettes.filter((r) => {
     if (!TYPES_REPAS.has(r.type || 'plat')) return false;
+    if (!repasValable(r)) return false;
     const regimes = new Set(r.regimes || []);
     if (restrictions.some((x) => !regimes.has(x))) return false;
     if ((r.materiel || []).some((m) => !materiel.has(m))) return false;
@@ -166,8 +182,8 @@ function evaluer(recette, personnes, index, p, caches) {
   return { usage, cout, inconnus };
 }
 
-// Recettes candidates : celles qui utilisent le stock + un tirage au hasard.
-function choisirPool(compat, index, deja, rng, nomsNorm) {
+// Recettes candidates : celles qui utilisent le stock, des plats populaires, et un tirage au hasard.
+function choisirPool(compat, index, deja, rng, nomsNorm, pop) {
   const libres = compat.filter((r) => !deja.has(r.id));
   if (libres.length <= POOL_MAX) return libres;
   const enStock = new Map();
@@ -180,14 +196,17 @@ function choisirPool(compat, index, deja, rng, nomsNorm) {
     return v;
   };
   const avecStock = [];
+  const populaires = [];
   const autres = [];
   for (const r of libres) {
-    const utiliseStock = (nomsNorm.get(r.id) || []).some(estEnStock);
-    (utiliseStock ? avecStock : autres).push(r);
+    if ((nomsNorm.get(r.id) || []).some(estEnStock)) avecStock.push(r);
+    else if ((pop.get(r.id)?.score || 0) >= SEUIL_POPULAIRE) populaires.push(r);
+    else autres.push(r);
   }
   melanger(avecStock, rng);
+  melanger(populaires, rng);
   melanger(autres, rng);
-  const pool = avecStock.slice(0, Math.floor(POOL_MAX / 2));
+  const pool = avecStock.slice(0, POOL_STOCK).concat(populaires.slice(0, POOL_POPULAIRES));
   return pool.concat(autres.slice(0, POOL_MAX - pool.length));
 }
 
@@ -215,6 +234,14 @@ export function genererPlanning(p) {
   const budget = Number(p.budget) > 0 ? Number(p.budget) : null;
   const moinsCher = p.mode === 'moinsCher';
   const nomsNorm = new Map(compat.map((r) => [r.id, (r.ingredients || []).map((ing) => normaliser(ing.nom))]));
+  const pop = popularites(p.recettes);
+  // Prix « normal » d'un repas, pour comparer les coûts : la part du budget, sinon 2,50 € par personne.
+  const prixRepere = budget ? Math.max(1, budget / nbRepas) : 2.5 * (p.personnes || 1);
+  const familles = new Map(); // famille de plat -> nombre de fois dans ce planning
+  for (const id of fixes.values()) {
+    const f = pop.get(id)?.famille;
+    if (f) familles.set(f, (familles.get(f) || 0) + 1);
+  }
 
   let stock = p.stock.map((it) => ({ ...it }));
   const choisis = new Set(fixes.values());
@@ -230,17 +257,22 @@ export function genererPlanning(p) {
     if (!recette) {
       const index = indexer(stock);
       const caches = { dispo: new Map(), urgence: new Map() };
-      const pool = choisirPool(compat, index, choisis, rng, nomsNorm);
+      const pool = choisirPool(compat, index, choisis, rng, nomsNorm, pop);
       const evals = pool.map((r) => {
         const e = evaluer(r, p.personnes, index, p, caches);
+        const infos = pop.get(r.id) || { score: 0, famille: null };
+        const dejaFamille = infos.famille ? familles.get(infos.famille) || 0 : 0;
         let score;
         if (moinsCher) {
-          score = -e.cout * 10 + e.usage + rng() * 0.5;
+          score = -e.cout * 10 + e.usage + infos.score + rng() * 0.5 - dejaFamille;
         } else {
-          score = e.usage * 3 - e.cout - e.inconnus * 0.5 + rng() * 1.5;
+          // Plats populaires d'abord, puis le stock à utiliser, puis le prix ; un peu de hasard pour varier.
+          score = infos.score * 5 + e.usage * 3 - (e.cout / prixRepere) * 1.5 - Math.min(1.5, e.inconnus * 0.4) + rng() * 3;
           if (favoris.has(r.id)) score += 2;
           if (recents.has(r.id)) score -= 4;
           if (moment === 'midi' && (r.temps || 99) <= 30) score += 0.5;
+          // Pas deux burgers dans la même semaine.
+          score -= dejaFamille * 3;
         }
         return { r, ...e, score };
       });
@@ -261,6 +293,8 @@ export function genererPlanning(p) {
     if (!recette) continue;
 
     choisis.add(recette.id);
+    const famille = pop.get(recette.id)?.famille;
+    if (famille && !fixes.has(i)) familles.set(famille, (familles.get(famille) || 0) + 1); // les fixés sont déjà comptés
     const res = appliquer(stock, recette, p.personnes, p, date);
     stock = res.stock;
     cout += res.cout;

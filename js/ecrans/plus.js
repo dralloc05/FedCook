@@ -1,6 +1,6 @@
 // Menu « Plus ».
 
-import { etat, titre } from '../etat.js';
+import { etat, titre, libelleMagasin } from '../etat.js';
 import { echapper } from '../texte.js';
 import { dateLisible } from '../unites.js';
 import { ICONES } from '../icones.js';
@@ -26,7 +26,7 @@ export async function afficher(conteneur) {
       ${rangee('#/reglages', ICONES.reglages, 'Réglages', 'Clé Gemini, sauvegarde')}
     </div>
     <p class="doux petit centre" style="margin-top:20px">${maj
-      ? `Prix Leclerc du ${dateLisible(maj.slice(0, 10), false)}${etat.prixData.magasin?.nom ? ` · ${echapper(etat.prixData.magasin.nom)}` : ''}`
+      ? `Prix Leclerc du ${dateLisible(maj.slice(0, 10), false)}${libelleMagasin() ? ` · ${echapper(libelleMagasin())}` : ''}`
       : 'Prix du Drive pas encore récupérés'}</p>
   `;
 }

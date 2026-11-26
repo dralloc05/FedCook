@@ -1,7 +1,9 @@
 // Prix des produits Leclerc (fichier data/prix.json) et prix relevés sur les tickets.
+// data/prix.json peut être un relevé par ingrédient (« ingredients ») ou le catalogue complet (« produits »).
 
 import { normaliser, memeIngredient } from './texte.js';
 import { parserFormat, convertir } from './unites.js';
+import { indexerCatalogue, chercherDansCatalogue } from './catalogue.js';
 
 export function creerContextePrix(prixData, choix = {}, prixTickets = {}) {
   const parNom = new Map();
@@ -11,7 +13,8 @@ export function creerContextePrix(prixData, choix = {}, prixTickets = {}) {
   }
   const tickets = new Map();
   for (const [nom, info] of Object.entries(prixTickets || {})) tickets.set(normaliser(nom), info);
-  return { parNom, choix: choix || {}, tickets, cache: new Map() };
+  const catalogue = prixData && Array.isArray(prixData.produits) ? indexerCatalogue(prixData.produits) : null;
+  return { parNom, catalogue, choix: choix || {}, tickets, cache: new Map() };
 }
 
 export function produitsPour(ctx, nom) {
@@ -20,7 +23,7 @@ export function produitsPour(ctx, nom) {
   for (const [cle, produits] of ctx.parNom) {
     if (memeIngredient(cle, n)) return produits;
   }
-  return [];
+  return ctx.catalogue ? chercherDansCatalogue(ctx.catalogue, nom) : [];
 }
 
 export function prixEffectif(p) {
@@ -30,7 +33,7 @@ export function prixEffectif(p) {
 
 export function contenance(p) {
   if (!p) return null;
-  const lu = parserFormat(p.format) || parserFormat(p.nom);
+  const lu = parserFormat(p.format) || parserFormat(p.nom) || parserFormat(p.nomComplet);
   if (lu && lu.qte > 0) return lu;
   // Sinon, on la déduit du prix et du prix au kilo / au litre.
   if (typeof p.prix === 'number' && typeof p.prixUnite === 'number' && p.prixUnite > 0) {

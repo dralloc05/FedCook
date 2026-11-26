@@ -45,13 +45,19 @@ async function demarrer() {
   etat.reglages = { cleGemini: '', modeleGemini: MODELE_GEMINI_DEFAUT, ...etat.reglages };
   etat.historique = { depenses: [], plats: [], ...etat.historique };
 
-  const [recettesData, prixData] = await Promise.all([
+  const [recettesData, recettesMaison, prixData] = await Promise.all([
     chargerJSON('data/recettes.json', []),
+    // Recettes ajoutées à la main (French tacos…) : fichier à part, la traduction ne l'écrase pas.
+    chargerJSON('data/recettes-maison.json', []),
     chargerJSON('data/prix.json', null),
   ]);
-  etat.recettes = Array.isArray(recettesData) ? recettesData.filter((r) => r && r.id && r.titre) : [];
+  const valides = (liste) => (Array.isArray(liste) ? liste.filter((r) => r && r.id && r.titre) : []);
+  const maison = valides(recettesMaison).map((r) => ({ source: 'maison', ...r }));
+  const idsMaison = new Set(maison.map((r) => r.id));
+  etat.recettes = maison.concat(valides(recettesData).filter((r) => !idsMaison.has(r.id)));
   etat.parId = new Map(etat.recettes.map((r) => [r.id, r]));
-  if (prixData && prixData.ingredients) etat.prixData = prixData;
+  // Deux formats possibles : prix par ingrédient (relevé Apify) ou catalogue complet (« produits »).
+  if (prixData && (prixData.ingredients || Array.isArray(prixData.produits))) etat.prixData = prixData;
 
   const noms = new Map();
   for (const r of etat.recettes) {

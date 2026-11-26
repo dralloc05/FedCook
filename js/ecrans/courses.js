@@ -1,6 +1,6 @@
 // Liste de courses du planning, chiffrée aux prix Leclerc, rangée par rayon.
 
-import { etat, sauver, titre, toast, contextePrix, aller } from '../etat.js';
+import { etat, sauver, titre, toast, contextePrix, aller, libelleMagasin } from '../etat.js';
 import { calculerCourses } from '../planning.js';
 import { produitsPour, contenance, prixEffectif } from '../prix.js';
 import { echapper, euros, normaliser, majuscule } from '../texte.js';
@@ -62,7 +62,7 @@ function dessiner(conteneur) {
 
   conteneur.innerHTML = `
     <div class="carte">
-      <span class="surtitre">Total estimé${etat.prixData?.magasin?.nom ? ` · Leclerc ${echapper(etat.prixData.magasin.nom)}` : ''}</span>
+      <span class="surtitre">Total estimé${libelleMagasin() ? ` · ${echapper(libelleMagasin())}` : ''}</span>
       <div class="total-ligne" style="margin-top:8px">
         <span class="gros-chiffre" style="${depasse ? 'color:var(--rouge)' : ''}">${euros(res.total)}</span>
         ${budget > 0 ? `<span class="doux" style="font-size:16px;font-weight:600">sur ${euros(budget)}</span>` : ''}
