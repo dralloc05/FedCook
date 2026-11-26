@@ -35,6 +35,9 @@ const POOL_STOCK = 250; // recettes qui utilisent le stock
 const POOL_POPULAIRES = 300; // plats populaires ou tendance
 const SEUIL_POPULAIRE = 0.55;
 
+// Ingrédients que le Leclerc ne vend pas : les recettes qui en ont besoin ne sont pas proposées.
+export const INTROUVABLES = ['sauce worcestershire', 'worcestershire'];
+
 // « Pâte à pizza », « Sauce bolognaise », « Riz basmati »… ne sont pas des repas.
 const repasConnus = new WeakMap();
 function repasValable(r) {
@@ -51,7 +54,7 @@ function repasValable(r) {
 export function recettesCompatibles(recettes, profil) {
   const restrictions = profil?.restrictions || [];
   const materiel = new Set(profil?.materiel || []);
-  const interdits = [...(profil?.detestes || []), ...(profil?.allergies || [])]
+  const interdits = [...(profil?.detestes || []), ...(profil?.allergies || []), ...INTROUVABLES]
     .map(normaliser)
     .filter(Boolean);
   return recettes.filter((r) => {
@@ -76,14 +79,44 @@ export function estProduitDeBase(nom, profil) {
   return (profil?.base || []).some((b) => memeNormalise(normaliser(b), n));
 }
 
-export function besoins(recette, personnes) {
+// « Riz cuit », « pâtes cuites », « poulet cuit » ne s'achètent pas : on achète le produit cru.
+// Facteur = poids cru pour 1 de poids cuit.
+const CUITS = [
+  [/^riz( \w+)?$/, null, 0.4],
+  [/^(pate|spaghetti|tagliatelle|penne|macaroni|coquillette|nouille)( \w+)?$/, null, 0.45],
+  [/^(quinoa|boulgour|semoule|ble)$/, null, 0.4],
+  [/^(lentille|lentille corail|lentille verte)$/, null, 0.4],
+  [/^(pois chiche|haricot rouge|haricot blanc)$/, null, 1],
+  [/^(poulet|blanc de poulet|filet de poulet|dinde)$/, 'filet de poulet', 1.35],
+  [/^(pomme de terre|patate douce|carotte|betterave)$/, null, 1],
+];
+
+export function versIngredientAchete(nom, qte) {
+  const n = normaliser(nom);
+  const m = n.match(/^(.*) (cuit|cuite|cuits|cuites)( .*)?$/);
+  if (!m) return null;
+  const base = m[1].trim();
+  for (const [re, remplace, facteur] of CUITS) {
+    if (re.test(base)) return { nom: remplace || nom.replace(/\s+cuit(e|s|es)?\b.*$/i, '').trim(), qte: qte * facteur };
+  }
+  return { nom: nom.replace(/\s+cuit(e|s|es)?\b.*$/i, '').trim(), qte };
+}
+
+/**
+ * Quantités d'une recette pour N personnes.
+ * pourAchat = true : version « à acheter / à prendre dans le stock » (riz cuit -> riz cru…).
+ */
+export function besoins(recette, personnes, pourAchat = false) {
   const facteur = personnes / (recette.portions || 4);
-  return (recette.ingredients || []).map((ing) => ({
-    nom: ing.nom,
-    qte: (Number(ing.qte) || 0) * facteur,
-    unite: ing.unite || 'g',
-    g: ing.g || null,
-  }));
+  return (recette.ingredients || []).map((ing) => {
+    let nom = ing.nom;
+    let qte = (Number(ing.qte) || 0) * facteur;
+    if (pourAchat) {
+      const brut = versIngredientAchete(nom, qte);
+      if (brut && brut.nom) ({ nom, qte } = brut);
+    }
+    return { nom, qte, unite: ing.unite || 'g', g: ing.g || null };
+  });
 }
 
 function idsRecents(historique, aujourdhuiISO, jours) {
@@ -124,7 +157,7 @@ function urgenceRapide(index, nNom, aujourdhuiISO) {
 function appliquer(stock, recette, personnes, p, dateISO) {
   let s = stock;
   let cout = 0;
-  for (const ing of besoins(recette, personnes)) {
+  for (const ing of besoins(recette, personnes, true)) {
     if (ing.qte <= 0 || estProduitDeBase(ing.nom, p.profil)) continue;
     const res = retirer(s, ing.nom, ing.qte, ing.unite, ing.g);
     s = res.stock;
@@ -154,7 +187,7 @@ function evaluer(recette, personnes, index, p, caches) {
   let usage = 0;
   let cout = 0;
   let inconnus = 0;
-  for (const ing of besoins(recette, personnes)) {
+  for (const ing of besoins(recette, personnes, true)) {
     if (ing.qte <= 0 || estProduitDeBase(ing.nom, p.profil)) continue;
     const n = normaliser(ing.nom);
     const cleDispo = `${n}|${ing.unite}`;
@@ -267,7 +300,9 @@ export function genererPlanning(p) {
           score = -e.cout * 10 + e.usage + infos.score + rng() * 0.5 - dejaFamille;
         } else {
           // Plats populaires d'abord, puis le stock à utiliser, puis le prix ; un peu de hasard pour varier.
-          score = infos.score * 5 + e.usage * 3 - (e.cout / prixRepere) * 1.5 - Math.min(1.5, e.inconnus * 0.4) + rng() * 3;
+          // Avec le catalogue complet, un ingrédient sans prix est souvent un ingrédient introuvable.
+          const malusInconnus = p.ctxPrix?.catalogue ? Math.min(4, e.inconnus * 1.2) : Math.min(1.5, e.inconnus * 0.4);
+          score = infos.score * 5 + e.usage * 3 - (e.cout / prixRepere) * 1.5 - malusInconnus + rng() * 3;
           if (favoris.has(r.id)) score += 2;
           if (recents.has(r.id)) score -= 4;
           if (moment === 'midi' && (r.temps || 99) <= 30) score += 0.5;
@@ -314,7 +349,7 @@ export function calculerCourses(p, repas) {
     if (r.fait) continue;
     const recette = parId.get(r.recetteId);
     if (!recette) continue;
-    for (const ing of besoins(recette, r.personnes)) {
+    for (const ing of besoins(recette, r.personnes, true)) {
       if (ing.qte <= 0 || estProduitDeBase(ing.nom, p.profil)) continue;
       const n = normaliser(ing.nom);
       let cle = n;

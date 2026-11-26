@@ -6,7 +6,7 @@ import { dateLisible } from '../unites.js';
 import { ICONES } from '../icones.js';
 
 // Version du code, pour vérifier qu'une mise à jour est bien arrivée sur le téléphone.
-const VERSION_APPLI = '7';
+const VERSION_APPLI = '8';
 
 function rangee(lien, icone, texte, detail) {
   return `<a class="rangee" href="${lien}">

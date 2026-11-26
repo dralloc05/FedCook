@@ -1,7 +1,7 @@
 // Fiche d'une recette, avec les quantités adaptées au nombre de personnes.
 
 import { etat, titre, aller } from '../etat.js';
-import { besoins, estProduitDeBase } from '../planning.js';
+import { besoins, estProduitDeBase, versIngredientAchete } from '../planning.js';
 import { echapper, majuscule } from '../texte.js';
 import { afficherQuantite } from '../unites.js';
 import { disponible } from '../stock.js';
@@ -14,8 +14,10 @@ export function ligneIngredient(ing, avecStock = true) {
   const base = estProduitDeBase(ing.nom, etat.profil);
   let etatStock = '';
   if (avecStock && ing.qte > 0 && !base) {
-    const dispo = disponible(etat.stock, ing.nom, ing.unite, ing.g);
-    etatStock = dispo >= ing.qte * 0.98 ? ' <span class="pastille verte">en stock</span>' : dispo > 0 ? ' <span class="pastille orange">en partie</span>' : '';
+    // « Riz cuit » : on regarde s'il reste assez de riz cru.
+    const achat = versIngredientAchete(ing.nom, ing.qte) || { nom: ing.nom, qte: ing.qte };
+    const dispo = disponible(etat.stock, achat.nom, ing.unite, ing.g);
+    etatStock = dispo >= achat.qte * 0.98 ? ' <span class="pastille verte">en stock</span>' : dispo > 0 ? ' <span class="pastille orange">en partie</span>' : '';
   }
   const texte = ing.qte > 0 ? `${qte}${ing.nom}` : `${majuscule(ing.nom)} (selon le goût)`;
   return `<li class="ligne espace"><span>${echapper(majuscule(texte))}</span>${etatStock}</li>`;

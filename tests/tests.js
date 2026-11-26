@@ -6,7 +6,7 @@ import { parserFormat, convertir, ajouterJours, joursEntre } from '../js/unites.
 import { rayonDe, dureeConservation } from '../js/peremption.js';
 import { creerContextePrix, estimerAchat, contenance } from '../js/prix.js';
 import { retirer, disponible } from '../js/stock.js';
-import { genererPlanning, calculerCourses, recettesCompatibles } from '../js/planning.js';
+import { genererPlanning, calculerCourses, recettesCompatibles, besoins } from '../js/planning.js';
 
 let ok = 0;
 function test(nom, fn) {
@@ -283,7 +283,7 @@ test('catalogue complet : produits proches, variantes et ruptures', () => {
   assert.deepEqual(noms('bouillon de poisson'), ['≈Bouillon de poule Knorr'], 'pas de bâtonnets de poisson');
   assert.deepEqual(noms("gousse d'ail"), ['Ail blanc']);
   assert.deepEqual(noms('lait'), ['Lait demi-écrémé'], 'pas de lait chocolaté, même si le vrai lait est en rupture');
-  assert.deepEqual(noms('feuille de laurier'), ['≈Laurier Ducros']);
+  assert.deepEqual(noms('feuille de laurier'), ['Laurier Ducros']);
   assert.deepEqual(noms('jarret de bœuf'), [], 'pas de jarret de porc');
   assert.deepEqual(noms('Steak de bœuf (rumsteck ou bavette)'), ['Bavette']);
   assert.deepEqual(noms('Saucisse fumée type andouille ou chorizo'), ['Chorizo doux']);
@@ -293,6 +293,44 @@ test('catalogue complet : produits proches, variantes et ruptures', () => {
   assert.equal(laurier.paquets, 1);
   assert.ok(laurier.approx);
   assert.equal(estimerAchat(ctx, 'lait', 500, 'ml').cout, 1.15);
+});
+
+test('catalogue : contenants, surgelés, cuits et produits non alimentaires', () => {
+  let id = 900;
+  const P = (nom, format, prix, prixUnite, unite, rayon, famille, extra = {}) =>
+    ({ id: id++, nom, nomComplet: `${nom} - ${format}`, format, prix, prixPromo: null, prixUnite, unite, enStock: true, rayon, famille, sousFamille: null, ...extra });
+  const produits = [
+    P('Boîte mouchoirs Lotus', 'x130', 2.4, null, null, null, null),
+    P('Thon entier au naturel Petit Navire', 'égoutté - 120g', 1.94, 16.17, 'kg', 'Épicerie salée', 'Conserves de poisson'),
+    P('Fleurettes de brocolis', '1kg', 2.1, 2.1, 'kg', 'Surgelés', 'Légumes surgelés'),
+    P('Petits pois extra-fins', '1kg', 2.3, 2.3, 'kg', 'Surgelés', 'Légumes surgelés'),
+    P('Céleri branche', 'la pièce', 1.5, null, null, 'Fruits et Légumes', 'Légumes'),
+    P('Graines de lin', '250g', 2.5, 10, 'kg', 'Épicerie salée', 'Graines'),
+    P('Riz long grain Eco+', '1kg', 1.2, 1.2, 'kg', 'Épicerie salée', 'Riz'),
+    P('Ailerons de poulet', '1kg', 4.9, 4.9, 'kg', 'Boucherie', 'Volailles'),
+  ];
+  const idx = indexerCatalogue(produits);
+  const noms = (ing) => chercherDansCatalogue(idx, ing).map((p) => p.nom);
+  assert.deepEqual(noms('thon en boîte'), ['Thon entier au naturel Petit Navire']);
+  assert.deepEqual(noms('thon en conserve'), ['Thon entier au naturel Petit Navire']);
+  assert.deepEqual(noms('brocoli surgelé'), ['Fleurettes de brocolis']);
+  assert.deepEqual(noms('petits pois surgelés'), ['Petits pois extra-fins']);
+  assert.deepEqual(noms('branche de céleri'), ['Céleri branche']);
+  assert.deepEqual(noms('graines de céleri'), [], 'pas de graines de lin');
+  assert.deepEqual(noms('ailes de poulet'), ['Ailerons de poulet']);
+  // Riz cuit : on achète du riz cru (environ 2,5 fois moins lourd).
+  const recette = { id: 'r', titre: 'Riz sauté', portions: 2, ingredients: [{ nom: 'riz cuit', qte: 600, unite: 'g' }] };
+  assert.deepEqual(besoins(recette, 2)[0].nom, 'riz cuit', "l'affichage de la recette ne change pas");
+  const achat = besoins(recette, 2, true)[0];
+  assert.equal(achat.nom, 'riz');
+  assert.equal(Math.round(achat.qte), 240);
+  assert.equal(noms(achat.nom)[0], 'Riz long grain Eco+');
+});
+
+test('pas de recette avec de la sauce Worcestershire', () => {
+  const avec = { ...recettes[0], id: 'w', ingredients: recettes[0].ingredients.concat([{ nom: 'Sauce Worcestershire', qte: 5, unite: 'ml' }]) };
+  assert.ok(!recettesCompatibles([avec], profil).length);
+  assert.equal(recettesCompatibles([recettes[0]], profil).length, 1);
 });
 
 import { analyserTicket } from '../js/ticket-texte.js';

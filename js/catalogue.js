@@ -50,6 +50,8 @@ const SYNONYMES = new Map([
   ['ciboule', ['cébette', 'oignon nouveau', 'ciboulette']],
   ['rumsteck', ['rumsteak', 'pavé de boeuf']],
   ['jarret de boeuf', ['boeuf à bouillir', 'pot au feu', 'boeuf bourguignon']],
+  ['aile de poulet', ['aileron de poulet', 'wings de poulet', 'manchon de poulet']],
+  ['thon', ['thon au naturel', 'miettes de thon']],
 ].map(([k, v]) => [normaliser(k), v]));
 
 // Viande crue : la version charcuterie (« blanc de poulet » en tranches) n'est pas la bonne.
@@ -57,8 +59,28 @@ const VIANDES_CRUES = new Set(['poulet', 'boeuf', 'porc', 'dinde', 'veau', 'agne
 
 const LIAISONS = new Set(['de', 'd', 'a', 'au', 'aux', 'en']);
 
-// Au-delà, un mot est trop courant pour identifier un produit à lui seul (« sauce », « bœuf »…).
-const MOT_TROP_COURANT = 80;
+// Mots qu'on peut enlever pour trouver le produit : contenant, état, couleur, forme.
+// « thon en boîte » -> thon, « brocoli surgelé » -> brocoli, « feuille de laurier » -> laurier.
+const SECONDAIRES = new Set(['boite', 'conserve', 'bocal', 'sachet', 'barquette', 'paquet', 'surgele', 'congele', 'cuit',
+  'cru', 'decortique', 'entier', 'nature', 'bio', 'fin', 'extra', 'emince', 'rape', 'tranche', 'rouge', 'vert', 'jaune',
+  'blanc', 'noir', 'feuille', 'branche', 'gousse', 'brin', 'tige', 'botte', 'morceau', 'cube', 'egoutte', 'seche',
+  'moulu', 'poudre', 'concasse', 'pele', 'nouveau',
+  // et leurs féminins
+  'cuite', 'crue', 'decortiquee', 'entiere', 'emincee', 'rapee', 'verte', 'blanche', 'noire', 'fine', 'sechee', 'moulue',
+  'concassee', 'pelee', 'nouvelle', 'surgelee', 'congelee', 'egouttee'].map(normaliser));
+
+// Parmi eux, ceux qui ne changent pas le produit (on l'achète tel quel) : pas de « ≈ » à l'affichage.
+const SANS_IMPACT = new Set(['boite', 'conserve', 'bocal', 'sachet', 'barquette', 'paquet', 'surgele', 'surgelee', 'congele',
+  'congelee', 'egoutte', 'egouttee', 'feuille', 'branche', 'gousse', 'brin', 'tige', 'botte', 'morceau', 'cube', 'tranche',
+  'rape', 'rapee', 'emince', 'emincee', 'entier', 'entiere', 'nature', 'bio', 'fin', 'fine', 'extra'].map(normaliser));
+
+// Seuls ces mots peuvent servir d'estimation sans leur complément (« bouillon de poisson » ≈ bouillon de volaille).
+const GENERIQUES = new Set(['bouillon', 'fond', 'fumet'].map(normaliser));
+
+// Produits non alimentaires qui auraient échappé au filtre des rayons.
+const NON_ALIMENTAIRE = new Set(['mouchoir', 'lessive', 'essuie', 'shampoing', 'shampooing', 'douche', 'dentifrice', 'couche',
+  'croquette', 'litiere', 'eponge', 'poubelle', 'ampoule', 'deodorant', 'rasoir', 'coton', 'lingette', 'nettoyant',
+  'vaisselle', 'javel', 'desodorisant', 'adoucissant', 'savon', 'serviette', 'insecticide', 'bougie'].map(normaliser));
 
 function mots(texte) {
   return normaliser(texte).split(' ').filter((m) => m && !MOTS_VIDES.has(m));
@@ -84,7 +106,7 @@ export function indexerCatalogue(produitsBruts) {
     const rayon = ` ${normaliser(`${p.rayon || ''}`)} `;
     if (RAYONS_EXCLUS.some((x) => rayon.includes(` ${x}`))) continue; // début de mot : « animal » -> « animalerie »
     const motsNom = mots(p.nom);
-    if (!motsNom.length) continue;
+    if (!motsNom.length || motsNom.some((m) => NON_ALIMENTAIRE.has(m))) continue;
     const i = produits.length;
     const famille = normaliser(`${p.famille || ''} ${p.sousFamille || ''}`);
     const parties = [normaliser(p.famille || ''), normaliser(p.sousFamille || '')].filter(Boolean);
@@ -204,33 +226,43 @@ export function chercherDansCatalogue(index, nomIngredient, max = 5) {
 
   const formes = variantes(nomIngredient).map((v) => ({ mots: mots(v), brut: normaliser(v) })).filter((f) => f.mots.length);
   const notes = new Map();
-  const noter = (indices, mIng, brut, malus, approx) => {
+  // niveau 0 : produit exact ; 1 : sans les mots secondaires ; 2 : autre sorte de bouillon (estimation).
+  const noter = (indices, mIng, brut, malus, niveau, approx = niveau > 0) => {
     for (const i of indices) {
       const e = index.produits[i];
       const score = pertinence(e, mIng, brut) - malus;
       const ancien = notes.get(i);
-      if (!ancien || ancien.score < score) notes.set(i, { e, score, approx });
+      if (!ancien || ancien.score < score) notes.set(i, { e, score, niveau, approx });
     }
   };
 
   // 1. Tous les mots de l'ingrédient (ou d'un de ses synonymes) sont dans le nom du produit.
   for (const f of formes) {
-    noter(candidats(index, f.mots), f.mots, f.brut, 0, false);
-    for (const syn of SYNONYMES.get(f.brut) || []) noter(candidats(index, mots(syn)), mots(syn), normaliser(syn), 0, false);
+    noter(candidats(index, f.mots), f.mots, f.brut, 0, 0);
+    for (const syn of SYNONYMES.get(f.brut) || []) noter(candidats(index, mots(syn)), mots(syn), normaliser(syn), 0, 0);
   }
 
-  // 2. Sinon, estimation avec un produit proche : on garde le mot le plus rare de l'ingrédient
-  //    (« laurier » dans « feuille de laurier », « bouillon » dans « bouillon de poisson »).
+  // 2. Sinon, sans les mots secondaires (contenant, état, couleur…) : « thon en boîte » -> thon.
   if (!notes.size) {
     for (const f of formes) {
-      const frequence = (m) => (index.parMot.get(m) || []).length;
-      const utiles = f.mots.filter((m) => frequence(m) > 0 && frequence(m) <= MOT_TROP_COURANT);
-      if (!utiles.length) continue;
-      const rare = utiles.reduce((a, b) => (frequence(b) < frequence(a) ? b : a));
-      for (const i of index.parMot.get(rare)) {
+      const essentiels = f.mots.filter((m) => !SECONDAIRES.has(m));
+      if (!essentiels.length || essentiels.length === f.mots.length) continue;
+      const brut = essentiels.join(' ');
+      const approx = f.mots.some((m) => SECONDAIRES.has(m) && !SANS_IMPACT.has(m)); // « vert », « cru »… : un produit voisin
+      noter(candidats(index, essentiels), essentiels, brut, 0.5, 1, approx);
+      for (const syn of SYNONYMES.get(brut) || []) noter(candidats(index, mots(syn)), mots(syn), normaliser(syn), 0.5, 1, approx);
+    }
+  }
+
+  // 2 bis. Un bouillon, un fond ou un fumet d'une autre sorte sert d'estimation.
+  if (!notes.size) {
+    for (const f of formes) {
+      if (!GENERIQUES.has(f.mots[0])) continue;
+      for (const i of index.parMot.get(f.mots[0]) || []) {
         const e = index.produits[i];
         const presents = f.mots.filter((m) => e.ensemble.has(m));
-        noter([i], presents, presents.join(' '), 1 + 1.5 * (f.mots.length - presents.length), true);
+        // (pas de contrôle « bouillon de… » ici : on cherche justement un autre bouillon)
+        noter([i], presents, null, 1 + 1.5 * (f.mots.length - presents.length), 2);
       }
     }
   }
@@ -242,7 +274,7 @@ export function chercherDansCatalogue(index, nomIngredient, max = 5) {
       const exact = candidats(index, f.mots, index.parMotFamille).filter((i) =>
         index.produits[i].parties.some((part) => part === f.brut
           || (part.startsWith(`${f.brut} `) && !LIAISONS.has(part.slice(f.brut.length + 1).split(' ')[0]))));
-      noter(exact, f.mots, f.brut, 1, false);
+      noter(exact, f.mots, f.brut, 1, 0);
     }
   }
 
@@ -251,9 +283,9 @@ export function chercherDansCatalogue(index, nomIngredient, max = 5) {
   if (triees.length) {
     const meilleur = triees[0];
     // Un produit trop peu pertinent (« biscuits au beurre » pour « beurre ») est écarté ;
-    // une estimation doit être franchement plausible.
-    const seuil = meilleur.approx ? 0 : -2;
-    if (meilleur.score > seuil) {
+    // une estimation doit être franchement plausible (pas de « piment d'Espelette moulu » pour un piment vert).
+    const seuil = [-2, 1, 2][meilleur.niveau];
+    if (meilleur.score >= seuil) {
       res = triees.filter((n) => n.score >= meilleur.score - 1.5).slice(0, max).map((n) => versProduit(n.e.p, n.approx));
     }
   }

@@ -121,7 +121,8 @@ export async function afficher(conteneur, params) {
   const terminer = async () => {
     let stock = etat.stock;
     const manques = [];
-    for (const ing of ingredients) {
+    // Version « stock » : le riz cuit se retire du riz cru, etc.
+    for (const ing of besoins(r, personnes, true)) {
       if (ing.qte <= 0 || estProduitDeBase(ing.nom, etat.profil)) continue;
       const res = retirer(stock, ing.nom, ing.qte, ing.unite, ing.g);
       stock = res.stock;
